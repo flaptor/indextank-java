@@ -1,0 +1,106 @@
+<project default="jar" basedir ="." name="indextank-apiclient">
+  <property name="project" value="indextank-apiclient"/>
+  <property name="version" value="trunk"/>
+  
+  <property name="src.dir" location="src"/>
+  <property name="thrift.dir" location="thrift"/>
+  <property name="build.dir" location="build"/>
+  <property name="output.dir"  location="output"/>
+  <property name="lib.dir" location="lib"/>
+  <property name="javadoc.dir" location="doc/javadoc"/>
+
+  <path id="build.classpath">
+    <fileset dir="${lib.dir}">
+      <include name="*.jar" />
+    </fileset>
+  </path>
+
+  <!--******************************************************************************************************-->
+  <target name="init">
+    <!-- Create the time stamp -->
+    <tstamp/>
+    <!-- Create the build directory structure used by compile -->
+    <mkdir dir="${build.dir}"/>
+    <mkdir dir="${output.dir}"/>
+    <mkdir dir="${javadoc.dir}"/>
+  </target>
+
+  <!--******************************************************************************************************-->
+  <target name="compile" depends="init" description="Compiles all the source." >
+    <javac debug="true" debuglevel="lines,vars,source" srcdir="${src.dir}" destdir="${build.dir}" classpathref="build.classpath"/>
+  </target>
+
+  <!--******************************************************************************************************-->
+  <target name="jar" depends="compile" description="Builds the jarfile." >
+    <jar jarfile="${output.dir}/${project}-${version}.jar" >
+       <manifest>
+         <attribute name="Built-By" value="${user.name}"/>
+         <attribute name="Version" value="${version}"/>
+       </manifest>
+
+       <fileset dir="${build.dir}" excludes="**/*Test.class">
+           <include name="**/*.class"/>
+       </fileset>
+   </jar>
+  </target>
+
+    <!--******************************************************************************************************-->
+    <target name="depjar" depends="init" description="builds the Indextank dependencies jar file" >
+        <jar jarfile="${output.dir}/${project}-${version}-deps.jar" >
+            <manifest>
+                <attribute name="Built-By" value="${user.name}"/>
+                <attribute name="Version" value="${version}"/>
+            </manifest>
+
+            <zipgroupfileset dir="${lib.dir}">
+                 <include name="*.jar" />
+            </zipgroupfileset>
+        </jar>
+    </target>
+
+    <!--******************************************************************************************************-->
+    <target name="fatjar" depends="compile" description="Builds IndexTank's fat jar file" >
+        <jar jarfile="${output.dir}/${project}-${version}-fat.jar" >
+            <manifest>
+                <attribute name="Built-By" value="${user.name}"/>
+                <attribute name="Version" value="${version}"/>
+            </manifest>
+
+            <fileset dir="${build.dir}" excludes="**/*Test.class">
+                <include name="com/flaptor/**/*.class"/>
+            </fileset>
+            <zipgroupfileset dir="${lib.dir}">
+                 <include name="*.jar" />
+            </zipgroupfileset>
+        </jar>
+    </target>
+
+  <!--******************************************************************************************************-->
+	<target name="doc" description="Creates de JavaDoc documentation." >
+		<delete dir="${javadoc.dir}" />
+		<mkdir dir="${javadoc.dir}" />
+		<javadoc    sourcepath="${src.dir}"
+			destdir="${javadoc.dir}"
+			Private="true"
+			linksource="yes"
+		>
+		<fileset dir="${src.dir}" defaultexcludes="yes">
+			<include name="com/**/*.java" />
+		</fileset>
+		<doctitle><![CDATA[<h1>${project} version ${version} documentation.</h1>]]></doctitle>
+		<classpath>
+			<path refid="build.classpath" />
+		</classpath>
+		</javadoc>
+	</target>
+
+<!--******************************************************************************************************-->
+  <target name="clean" description="Clean up." >
+    <delete dir="${build.dir}"/>
+    <delete dir="${output.dir}"/>
+    <delete dir="${javadoc.dir}"/>
+  </target>
+
+    <!--******************************************************************************************************-->
+
+</project>
