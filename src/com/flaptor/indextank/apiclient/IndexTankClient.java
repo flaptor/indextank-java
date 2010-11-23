@@ -167,7 +167,125 @@ public class IndexTankClient {
 		}
 	}
 	
+	public static class Query {
+		private Integer start;
+		private Integer length;
+		private Integer scoringFunction;
+		private List<String> snippetFields;
+		private List<String> fetchFields;
+		private Map<String, List<String>> categoryFilters;
+		private Map<Integer, Float> queryVariables;
+		
+		private String queryString;
+		
+		
+		public static Query forString(String query) {
+			return new Query(query);
+		}
+			
+		private Query(String query) {
+			this.queryString = query;
+		}
+		
+		public Query withStart(Integer start) {
+			this.start = start;
+			return this;
+		}
+		
+		public Query withLength(Integer length) {
+			this.length = length;
+			return this;
+		}
 
+		public Query withScoringFunction(Integer scoringFunction) {
+			this.scoringFunction = scoringFunction;
+			return this;
+		}
+
+		public Query withSnippetFields(List<String> snippetFields) {
+			if (snippetFields == null) {
+				throw new NullPointerException("snippetFields must be non-null");
+			}
+			
+			if (this.snippetFields == null) {
+				this.snippetFields = new ArrayList<String>();
+			}
+			
+			this.snippetFields.addAll(snippetFields);
+			
+			return this;
+		}
+		
+		public Query withSnippetFields(String ... snippetFields) {
+			return withSnippetFields(Arrays.asList(snippetFields));
+		}
+
+		public Query withFetchFields(List<String> fetchFields) {
+			if (fetchFields == null) {
+				throw new NullPointerException("fetchFields must be non-null");
+			}
+		
+			if (this.fetchFields == null) {
+				this.fetchFields = new ArrayList<String>();
+			}
+			
+			this.fetchFields.addAll(fetchFields);
+			
+			return this;
+		}
+
+		public Query withFetchFields(String ... fetchFields) {
+			return withFetchFields(Arrays.asList(fetchFields));
+		}
+
+		public Query withCategoryFilters(Map<String, List<String>> categoryFilters) {
+			if (categoryFilters == null) {
+				throw new NullPointerException("categoryFilters must be non-null");
+			}
+			
+			if (this.categoryFilters == null && !categoryFilters.isEmpty()) {
+				this.categoryFilters = new HashMap<String, List<String>>();
+			}
+			if (!categoryFilters.isEmpty()) {
+				this.categoryFilters.putAll(categoryFilters);
+			}
+
+			return this;
+		}
+		
+		public Query withQueryVariables(Map<Integer, Float> queryVariables) {
+			if (queryVariables == null) {
+				throw new NullPointerException("queryVariables must be non-null");
+			}
+
+			if (this.queryVariables == null && !queryVariables.isEmpty()) {
+				this.queryVariables = new HashMap<Integer, Float>();
+			}
+			
+			if (!queryVariables.isEmpty()) {
+				this.queryVariables.putAll(queryVariables);
+			}
+			
+			return this;
+		}
+		
+		public Query withQueryVariable(Integer name, Float value) {
+			if (name == null || value == null) {
+				throw new NullPointerException("Both name and value must be non-null");
+			}
+			
+			if (this.queryVariables == null) {
+				this.queryVariables = new HashMap<Integer, Float>();
+			}
+			
+			this.queryVariables.put(name, value);
+			
+			return this;
+		}
+		
+	}
+
+	
 	/**
 	 * Client to control a specific index.
 	 * 
@@ -188,11 +306,39 @@ public class IndexTankClient {
 		}
 		
 		public SearchResults search(String query) throws IOException, InvalidSyntaxException {
-			return search(query, null, null, null, null, null, null);
+			return search(Query.forString(query));
 		}
 		
-		public SearchResults search(String query, Integer start, Integer length, Integer scoringFunctionIndex, String[] snippetFields, String[] fetchFields, Map<String, List<String>> categoryFilters) throws IOException, InvalidSyntaxException {
-			Map<String, String> params = new HashMap<String, String>();
+		public SearchResults search(Query query) throws IOException, InvalidSyntaxException {
+			Map<String, String> params = new HashMap<String, String>();	
+			
+			if (query.start != null) params.put("start", query.start.toString());
+			if (query.length != null) params.put("len", query.length.toString());
+			if (query.scoringFunction != null) params.put("function", query.scoringFunction.toString());
+			if (query.snippetFields != null) params.put("snippet", join(query.snippetFields, ","));
+			if (query.fetchFields != null) params.put("fetch", join(query.fetchFields, ","));
+			if (query.categoryFilters != null) params.put("category_filters", JSONObject.toJSONString(query.categoryFilters));
+			if (query.queryVariables != null) {
+				for (Entry<Integer, Float> entry : query.queryVariables.entrySet()) {
+					params.put("var" + entry.getKey(), String.valueOf(entry.getValue()));
+				}
+			}
+			
+			params.put("q", query.queryString);
+			
+			try {
+				return new SearchResults(callAPI(GET_METHOD, indexUrl + SEARCH_URL, params));
+			} catch (HttpCodeException e) {
+				if (e.httpCode == 400) {
+					throw new InvalidSyntaxException(e);
+				} else {
+					throw new UnexpectedCodeException(e);
+				}
+			}
+		}
+
+		/*public SearchResults search(String query, Integer start, Integer length, Integer scoringFunctionIndex, String[] snippetFields, String[] fetchFields, Map<String, List<String>> categoryFilters, Map<Integer, Float> queryVariables) throws IOException, InvalidSyntaxException {
+			Map<String, String> params = new HashMap<String, String>();	
 			
 			if (start != null) params.put("start", start.toString());
 			if (length != null) params.put("len", length.toString());
@@ -200,6 +346,11 @@ public class IndexTankClient {
 			if (snippetFields != null) params.put("snippet", join(Arrays.asList(snippetFields), ","));
 			if (fetchFields != null) params.put("fetch", join(Arrays.asList(fetchFields), ","));
 			if (categoryFilters != null) params.put("category_filters", JSONObject.toJSONString(categoryFilters));
+			if (queryVariables != null) {
+				for (Entry<Integer, Float> entry : queryVariables.entrySet()) {
+					params.put("var" + entry.getKey(), String.valueOf(entry.getValue()));
+				}
+			}
 			
 			params.put("q", query);
 			
@@ -212,7 +363,7 @@ public class IndexTankClient {
 					throw new UnexpectedCodeException(e);
 				}
 			}
-		}
+		}*/
 		
 		/**
 		 * Creates this index.
