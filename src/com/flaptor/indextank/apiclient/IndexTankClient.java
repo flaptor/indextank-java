@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -21,13 +22,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
 
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
-
-import sun.misc.BASE64Encoder;
 
 public class IndexTankClient {
 	private static final String GET_METHOD = "GET"; 
@@ -59,27 +57,25 @@ public class IndexTankClient {
 		}
 	}
 	
-	private static Map<String, Object> callAPI(String method, String urlString, Map<String, String> params) throws IOException, HttpCodeException {
-		return callAPI(method, urlString, params, null);
+	private static Map<String, Object> callAPI(String method, String urlString, Map<String, String> params, String privatePass) throws IOException, HttpCodeException {
+		return callAPI(method, urlString, params, null, privatePass);
 	}
 
-	private static Map<String, Object> callAPI(String method, String urlString) throws IOException, HttpCodeException {
-		return callAPI(method, urlString, null, null);
+	private static Map<String, Object> callAPI(String method, String urlString, String privatePass) throws IOException, HttpCodeException {
+		return callAPI(method, urlString, null, null, privatePass);
 	}
     
-	private static Map<String, Object> callAPI(String method, String urlString, Map<String, String> params, Map<String, Object> data) throws IOException, HttpCodeException {
-        Map<String, Object> results = null;
+	private static Map<String, Object> callAPI(String method, String urlString, Map<String, String> params, Map<String, Object> data, String privatePass) throws IOException, HttpCodeException {
         
         if (params!=null && !params.isEmpty()) {
         	urlString += "?" + paramsToQueryString(params);
         }
         URL url = new URL(urlString);
-        String privatePass = url.getUserInfo();
         
         HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
         
         urlConnection.setDoOutput(true);
-        urlConnection.setRequestProperty("Authorization", "Basic " + new BASE64Encoder().encode(privatePass.getBytes()));
+        urlConnection.setRequestProperty("Authorization", "Basic " + Base64.encodeBytes(privatePass.getBytes()));
         urlConnection.setRequestMethod(method);
         
         if (method.equals(PUT_METHOD) && data != null) {
@@ -327,7 +323,7 @@ public class IndexTankClient {
 			params.put("q", query.queryString);
 			
 			try {
-				return new SearchResults(callAPI(GET_METHOD, indexUrl + SEARCH_URL, params));
+				return new SearchResults(callAPI(GET_METHOD, indexUrl + SEARCH_URL, params, privatePass));
 			} catch (HttpCodeException e) {
 				if (e.httpCode == 400) {
 					throw new InvalidSyntaxException(e);
@@ -373,7 +369,7 @@ public class IndexTankClient {
 		 */
 		public void create() throws IOException, IndexAlreadyExistsException, MaximumIndexesExceededException {
 			try {
-				callAPI(PUT_METHOD, indexUrl);
+				callAPI(PUT_METHOD, indexUrl, privatePass);
 			} catch (HttpCodeException e) {
 				if (e.httpCode == 204) {
 					throw new IndexAlreadyExistsException(e);
@@ -387,7 +383,7 @@ public class IndexTankClient {
 
 		public void delete() throws IOException, IndexDoesNotExistException {
 			try {
-				callAPI(DELETE_METHOD, indexUrl);
+				callAPI(DELETE_METHOD, indexUrl, privatePass);
 			} catch (HttpCodeException e) {
 				if (e.httpCode == 404) {
 					throw new IndexDoesNotExistException(e);
@@ -419,7 +415,7 @@ public class IndexTankClient {
 			}
 			
 			try {
-				callAPI(PUT_METHOD, indexUrl + DOCS_URL, null, data);
+				callAPI(PUT_METHOD, indexUrl + DOCS_URL, null, data, privatePass);
 			} catch (HttpCodeException e) {
 				if (e.httpCode == 404) {
 					throw new IndexDoesNotExistException(e);
@@ -441,7 +437,7 @@ public class IndexTankClient {
 			params.put("docid", documentId);
 			
 			try {
-				callAPI(DELETE_METHOD, indexUrl + DOCS_URL, params);
+				callAPI(DELETE_METHOD, indexUrl + DOCS_URL, params, privatePass);
 			} catch (HttpCodeException e) {
 				if (e.httpCode == 404) {
 					throw new IndexDoesNotExistException(e);
@@ -465,7 +461,7 @@ public class IndexTankClient {
 			data.put("variables", variables);
 
 			try {
-				callAPI(PUT_METHOD, indexUrl + VARIABLES_URL, null, data);
+				callAPI(PUT_METHOD, indexUrl + VARIABLES_URL, null, data, privatePass);
 			} catch (HttpCodeException e) {
 				if (e.httpCode == 404) {
 					throw new IndexDoesNotExistException(e);
@@ -489,7 +485,7 @@ public class IndexTankClient {
 			data.put("categories", variables);
 
 			try {
-				callAPI(PUT_METHOD, indexUrl + CATEGORIES_URL, null, data);
+				callAPI(PUT_METHOD, indexUrl + CATEGORIES_URL, null, data, privatePass);
 			} catch (HttpCodeException e) {
 				if (e.httpCode == 404) {
 					throw new IndexDoesNotExistException(e);
@@ -504,7 +500,7 @@ public class IndexTankClient {
 			data.put("query", query);
 			
 			try {
-				callAPI(PUT_METHOD, indexUrl + PROMOTE_URL, null, data);
+				callAPI(PUT_METHOD, indexUrl + PROMOTE_URL, null, data, privatePass);
 			} catch (HttpCodeException e) {
 				if (e.httpCode == 404) {
 					throw new IndexDoesNotExistException(e);
@@ -519,7 +515,7 @@ public class IndexTankClient {
 			data.put("definition", definition);
 			
 			try {
-				callAPI(PUT_METHOD, indexUrl + FUNCTIONS_URL + "/" + functionIndex, null, data);
+				callAPI(PUT_METHOD, indexUrl + FUNCTIONS_URL + "/" + functionIndex, null, data, privatePass);
 			} catch (HttpCodeException e) {
 				if (e.httpCode == 404) {
 					throw new IndexDoesNotExistException(e);
@@ -533,7 +529,7 @@ public class IndexTankClient {
 		
 		public void deleteFunction(Integer functionIndex) throws IOException, IndexDoesNotExistException {
 			try {
-				callAPI(DELETE_METHOD, indexUrl + FUNCTIONS_URL + "/" + functionIndex);
+				callAPI(DELETE_METHOD, indexUrl + FUNCTIONS_URL + "/" + functionIndex, privatePass);
 			} catch (HttpCodeException e) {
 				if (e.httpCode == 404) {
 					throw new IndexDoesNotExistException(e);
@@ -545,7 +541,7 @@ public class IndexTankClient {
 		
 		public Map<String, String> listFunctions() throws IndexDoesNotExistException, IOException {
 			try {
-				Map<String, Object> responseMap = callAPI(GET_METHOD, indexUrl + FUNCTIONS_URL);
+				Map<String, Object> responseMap = callAPI(GET_METHOD, indexUrl + FUNCTIONS_URL, privatePass);
 				Map<String, String> result = new HashMap<String, String>();
 				
 				for (Entry<String, Object> entry : responseMap.entrySet()) {
@@ -609,7 +605,7 @@ public class IndexTankClient {
 		
 		public void refreshMetadata() throws IOException, IndexDoesNotExistException {
 			try {
-				metadata = callAPI(GET_METHOD, indexUrl);
+				metadata = callAPI(GET_METHOD, indexUrl, privatePass);
 			} catch (HttpCodeException e) {
 				if (e.httpCode == 404) {
 					throw new IndexDoesNotExistException(e);
@@ -627,13 +623,33 @@ public class IndexTankClient {
 			return this.metadata;
 		}
 	} 
-	private final String apiUrl; 
+	private final String apiUrl;
+	private final String privatePass; 
 	
 	public IndexTankClient(String apiUrl) {
+		this.apiUrl = appendTrailingSlash(apiUrl);
+		try {
+			this.privatePass = new URL(apiUrl).getUserInfo();
+		} catch (MalformedURLException e) {
+			throw new IllegalArgumentException(e);
+		}
+	}
+	
+	/**
+	 * Used for gae compat.
+	 * @param apiUrl
+	 * @param privatePass
+	 */
+	public IndexTankClient(String apiUrl, String privatePass) {
+		this.apiUrl = appendTrailingSlash(apiUrl);
+		this.privatePass = privatePass;
+	}
+
+	private static String appendTrailingSlash(String apiUrl) {
 		if (!apiUrl.endsWith("/")) {
 			apiUrl += "/";
 		}
-		this.apiUrl = apiUrl;
+		return apiUrl;
 	}
 	
 	public Index getIndex(String indexName) {
@@ -665,7 +681,7 @@ public class IndexTankClient {
 	public List<Index> listIndexes() throws IOException {
 		try {
 			List<Index> result = new ArrayList<Index>();
-			Map<String, Object> responseMap = callAPI(GET_METHOD, getIndexesUrl());
+			Map<String, Object> responseMap = callAPI(GET_METHOD, getIndexesUrl(), privatePass);
 			
 			for (Entry<String, Object> entry : responseMap.entrySet()) {
 				result.add(new Index(getIndexUrl(entry.getKey()), (Map<String, Object>) entry.getValue()));
@@ -692,7 +708,7 @@ public class IndexTankClient {
 	}
 
 	private String getIndexesUrl() {
-		String indexesUrl = apiUrl + "/v1/indexes/";
+		String indexesUrl = apiUrl + "v1/indexes/";
 		return indexesUrl;
 	}
 	
