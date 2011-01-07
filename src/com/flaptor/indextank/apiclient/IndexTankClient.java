@@ -400,13 +400,16 @@ public class IndexTankClient {
 		/**
 		 * Indexes a document for the given docid and fields.
 		 *  
-		 * @param documentId unique document identifier
+		 * @param documentId unique document identifier. Can't be longer than 1024 bytes when UTF-8 encoded. Never {@code null}.
 		 * @param fields map with the document fields
-		 * @param variables map integer -> float with values for variables that can later be used in scoring functions during searches.
+		 * @param variables map integer -&gt; float with values for variables that can later be used in scoring functions during searches.
 		 * @throws IOException 
-		 * @throws IndexDoesNotExistException 
+		 * @throws IndexDoesNotExistException
+		 * @throws UnexpectedCodeException
 		 */
 		public void addDocument(String documentId, Map<String, String> fields, Map<Integer, Float> variables) throws IOException, IndexDoesNotExistException {
+			if (null == documentId) throw new IllegalArgumentException("documentId can not be null.");
+			if (documentId.getBytes("UTF-8").length > 1024) throw new IllegalArgumentException("documentId can not be longer than 1024 bytes when UTF-8 encoded.");
 			Map<String, Object> data = new HashMap<String, Object>();
 			data.put("docid", documentId);
 			data.put("fields", fields);
@@ -428,11 +431,13 @@ public class IndexTankClient {
 		/**
 		 * Deletes the given docid from the index if it existed. Otherwise, does nothing.
 		 * 
-		 * @param documentId
+		 * @param documentId unique document identifier. Never {@code null}.
 		 * @throws IOException 
 		 * @throws IndexDoesNotExistException 
+		 * @throws UnexpectedCodeException
 		 */
 		public void deleteDocument(String documentId) throws IOException, IndexDoesNotExistException {
+			if (null == documentId) throw new IllegalArgumentException("documentId can not be null");
 			Map<String, String> params = new HashMap<String, String>();
 			params.put("docid", documentId);
 			
@@ -450,12 +455,14 @@ public class IndexTankClient {
 		/**
 		 * Updates the variables of the document for the given docid.
 		 * 
-		 * @param documentId unique document identifier
-		 * @param variables map integer -> float with values for variables that can later be used in scoring functions during searches.
+		 * @param documentId unique document identifier. Never {@code null}.
+		 * @param variables map integer -&gt; float with values for variables that can later be used in scoring functions during searches.
 		 * @throws IOException
 		 * @throws IndexDoesNotExistException
+     * @throws UnexpectedCodeException
 		 */
 		public void updateVariables(String documentId, Map<Integer, Float> variables) throws IOException, IndexDoesNotExistException {
+			if (null == documentId) throw new IllegalArgumentException("documentId can not be null");
 			Map<String, Object> data = new HashMap<String, Object>();
 			data.put("docid", documentId);
 			data.put("variables", variables);
@@ -474,10 +481,12 @@ public class IndexTankClient {
 		/**
 		 * Updates the categories (for faceting purposes) of the document for the given docid.
 		 * 
-		 * @param documentId unique document identifier
-		 * @param categroies map string -> string with the values of this document for each category. A blank value equals to removing the category for the document. 
+		 * @param documentId unique document identifier. Never {@code null}.
+		 * @param categories map string -&gt; string with the values of this document for each category. 
+		 *                   A blank value equals to removing the category for the document. 
 		 * @throws IOException
 		 * @throws IndexDoesNotExistException
+     * @throws UnexpectedCodeException
 		 */
 		public void updateCategories(String documentId, Map<String, String> variables) throws IOException, IndexDoesNotExistException {
 			Map<String, Object> data = new HashMap<String, Object>();
@@ -495,6 +504,7 @@ public class IndexTankClient {
 			}			
 		}
 		public void promote(String documentId, String query) throws IOException, IndexDoesNotExistException {
+			if (null == documentId) throw new IllegalArgumentException("documentId can not be null");
 			Map<String, Object> data = new HashMap<String, Object>();
 			data.put("docid", documentId);
 			data.put("query", query);
