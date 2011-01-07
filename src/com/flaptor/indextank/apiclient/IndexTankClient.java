@@ -163,6 +163,18 @@ public class IndexTankClient {
 		}
 	}
 	
+	private static class Range {
+		private int id;
+		private double floor;
+		private double ceil;
+
+		public Range(int id, double floor, double ceil) {
+			this.id = id;
+			this.floor = floor;
+			this.ceil = ceil;
+		}
+	}
+	
 	public static class Query {
 		private Integer start;
 		private Integer length;
@@ -170,7 +182,11 @@ public class IndexTankClient {
 		private List<String> snippetFields;
 		private List<String> fetchFields;
 		private Map<String, List<String>> categoryFilters;
+		private List<Range> functionFilters;
+		private List<Range> documentVariableFilters;
+		
 		private Map<Integer, Float> queryVariables;
+		
 		
 		private String queryString;
 		
@@ -233,7 +249,27 @@ public class IndexTankClient {
 		public Query withFetchFields(String ... fetchFields) {
 			return withFetchFields(Arrays.asList(fetchFields));
 		}
+		
+		public Query withDocumentVariableFilter(int variableIndex, double floor, double ceil) {
+			if (documentVariableFilters == null) {
+				documentVariableFilters = new ArrayList<Range>();
+			}
+			
+			documentVariableFilters.add(new Range(variableIndex, floor, ceil));
+			
+			return this;
+		}
 
+		public Query withFunctionFilter(int functionIndex, double floor, double ceil) {
+			if (functionFilters == null) {
+				functionFilters = new ArrayList<Range>();
+			}
+			
+			functionFilters.add(new Range(functionIndex, floor, ceil));
+			
+			return this;
+		}
+		
 		public Query withCategoryFilters(Map<String, List<String>> categoryFilters) {
 			if (categoryFilters == null) {
 				throw new NullPointerException("categoryFilters must be non-null");
@@ -314,6 +350,35 @@ public class IndexTankClient {
 			if (query.snippetFields != null) params.put("snippet", join(query.snippetFields, ","));
 			if (query.fetchFields != null) params.put("fetch", join(query.fetchFields, ","));
 			if (query.categoryFilters != null) params.put("category_filters", JSONObject.toJSONString(query.categoryFilters));
+			
+			if (query.documentVariableFilters != null) {
+				for (Range range : query.documentVariableFilters) {
+					String key = "filter_docvar" + range.id;
+					String value = (range.floor == Double.NEGATIVE_INFINITY ? "*" : String.valueOf(range.floor)) + ":" + 
+							(range.ceil == Double.POSITIVE_INFINITY ? "*" : String.valueOf(range.ceil));
+					String param = params.get(key);
+					if (param == null) {
+						params.put(key, value);
+					} else {
+						params.put(key, param + "," + value);
+					}
+				}
+			}
+			 
+			if (query.functionFilters != null) {
+				for (Range range : query.functionFilters) {
+					String key = "filter_function" + range.id;
+					String value = (range.floor == Double.NEGATIVE_INFINITY ? "*" : String.valueOf(range.floor)) + ":" + 
+					(range.ceil == Double.POSITIVE_INFINITY ? "*" : String.valueOf(range.ceil));
+					String param = params.get(key);
+					if (param == null) {
+						params.put(key, value);
+					} else {
+						params.put(key, param + "," + value);
+					}
+				}
+			}
+
 			if (query.queryVariables != null) {
 				for (Entry<Integer, Float> entry : query.queryVariables.entrySet()) {
 					params.put("var" + entry.getKey(), String.valueOf(entry.getValue()));
@@ -710,6 +775,45 @@ public class IndexTankClient {
 	private String getIndexesUrl() {
 		String indexesUrl = apiUrl + "v1/indexes/";
 		return indexesUrl;
+	}
+
+	public static void main(String[] args) throws IOException, IndexDoesNotExistException, InvalidSyntaxException {
+		IndexTankClient client = new IndexTankClient("http://:MQVbTNsBk0YBFj@8mt1o.api.indextank.com");
+		Index index = client.getIndex("newJars");
+
+		System.out.println(index.search(Query.forString("a OR b OR c").withFunctionFilter(1, 2d, Double.POSITIVE_INFINITY)));
+		
+		/*Map<String, String> fields = new HashMap<String, String>();
+		Map<Integer, Float> variables = new HashMap<Integer, Float>();
+		
+		fields.put("text", "a b c");
+		variables.put(1, -1f);
+		index.addDocument("abc", fields, variables);
+
+		fields.put("text", "a b");
+		variables.put(1, 2f);
+		index.addDocument("ab", fields, variables);
+
+		fields.put("text", "a c");
+		variables.put(1, 3f);
+		index.addDocument("ac", fields, variables);
+	
+		fields.put("text", "b c");
+		variables.put(1, 4f);
+		index.addDocument("bc", fields, variables);
+		
+		fields.put("text", "a");
+		variables.put(1, 5f);
+		index.addDocument("a", fields, variables);
+
+		fields.put("text", "b");
+		variables.put(1, 6f);
+		index.addDocument("b", fields, variables);
+	
+		fields.put("text", "c");
+		variables.put(1, 7f);
+		index.addDocument("c", fields, variables);
+		*/
 	}
 	
 }
