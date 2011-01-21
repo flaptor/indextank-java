@@ -28,6 +28,9 @@ import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
 public class IndexTankClient {
+
+    private static final String USER_AGENT = "Indextank-Java/1.0.2";
+
 	private static final String GET_METHOD = "GET"; 
 	private static final String PUT_METHOD = "PUT"; 
 	private static final String DELETE_METHOD = "DELETE";
@@ -76,6 +79,7 @@ public class IndexTankClient {
         
         urlConnection.setDoOutput(true);
         urlConnection.setRequestProperty("Authorization", "Basic " + Base64.encodeBytes(privatePass.getBytes()));
+        urlConnection.setRequestProperty("User-Agent", USER_AGENT);
         urlConnection.setRequestMethod(method);
         
         if (method.equals(PUT_METHOD) && data != null) {
