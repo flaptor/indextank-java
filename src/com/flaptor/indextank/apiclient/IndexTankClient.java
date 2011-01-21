@@ -29,7 +29,7 @@ import org.json.simple.JSONValue;
 
 public class IndexTankClient {
 
-    private static final String USER_AGENT = "Indextank-Java/1.0.2";
+    private static final String USER_AGENT = "IndexTank-Java/1.0.0";
 
 	private static final String GET_METHOD = "GET"; 
 	private static final String PUT_METHOD = "PUT"; 
