@@ -7,7 +7,7 @@
   </parent>
   
   <modelVersion>4.0.0</modelVersion>
-  <groupId>com.flaptor.indextank</groupId>
+  <groupId>com.indextank</groupId>
   <artifactId>indextank-java</artifactId>
   <packaging>jar</packaging>
   <name>Indextank Java Client</name>
