@@ -1,0 +1,87 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <parent>
+    <groupId>org.sonatype.oss</groupId>
+    <artifactId>oss-parent</artifactId>
+    <version>6</version>
+  </parent>
+  
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.indextank</groupId>
+  <artifactId>indextank-java</artifactId>
+  <packaging>jar</packaging>
+  <name>Indextank Java Client</name>
+  <version>1.0.1-SNAPSHOT</version>
+  <description>Java client for Indextank search engine</description>
+  <url>http://www.indextank.com</url>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <scm>
+    <connection>scm:git:git@github.com:flaptor/indextank-java.git</connection>
+    <developerConnection>scm:git:git@github.com:flaptor/indextank-java.git</developerConnection>
+    <url>https://github.com/flaptor/indextank-java</url>
+  </scm>
+
+  <developers>
+    <developer>
+      <id>indextank</id>
+      <name>Indextank developers</name>
+      <email>support@indextank.com</email>
+    </developer>
+    <developer>
+      <id>afernandez</id>
+      <name>Adrian Fernandez</name>
+      <email>adrian@indextank.com</email>
+    </developer>
+    <developer>
+      <id>dbuthay</id>
+      <name>Diego Buthay</name>
+      <email>dbuthay@indextank.com</email>
+    </developer>
+    <developer>
+      <id>iperez</id>
+      <name>Ignacio Perez</name>
+      <email>ignacio@indextank.com</email>
+    </developer>
+    <developer>
+      <id>jhandl</id>
+      <name>Jorge Handl</name>
+      <email>jorge@indextank.com</email>
+    </developer>
+    <developer>
+      <id>santip</id>
+      <name>Santiago Perez</name>
+      <email>santiago@indextank.com</email>
+    </developer>
+    <developer>
+      <id>spike</id>
+      <name>Alejandro Perez</name>
+      <email>spike@indextank.com</email>
+    </developer>
+    <developer>
+      <id>loniszczuk</id>
+      <name>Leandro Oniszczuk</name>
+      <email>leandro@indextank.com</email>
+    </developer>
+  </developers>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.googlecode.json-simple</groupId>
+      <artifactId>json-simple</artifactId>
+      <version>1.1</version>
+    </dependency>
+  </dependencies>
+
+</project>
