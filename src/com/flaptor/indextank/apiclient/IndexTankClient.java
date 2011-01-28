@@ -787,43 +787,4 @@ public class IndexTankClient {
 		return indexesUrl;
 	}
 
-	public static void main(String[] args) throws IOException, IndexDoesNotExistException, InvalidSyntaxException {
-		IndexTankClient client = new IndexTankClient("http://:MQVbTNsBk0YBFj@8mt1o.api.indextank.com");
-		Index index = client.getIndex("newJars");
-
-		System.out.println(index.search(Query.forString("a OR b OR c").withFunctionFilter(1, 2d, Double.POSITIVE_INFINITY)));
-		
-		/*Map<String, String> fields = new HashMap<String, String>();
-		Map<Integer, Float> variables = new HashMap<Integer, Float>();
-		
-		fields.put("text", "a b c");
-		variables.put(1, -1f);
-		index.addDocument("abc", fields, variables);
-
-		fields.put("text", "a b");
-		variables.put(1, 2f);
-		index.addDocument("ab", fields, variables);
-
-		fields.put("text", "a c");
-		variables.put(1, 3f);
-		index.addDocument("ac", fields, variables);
-	
-		fields.put("text", "b c");
-		variables.put(1, 4f);
-		index.addDocument("bc", fields, variables);
-		
-		fields.put("text", "a");
-		variables.put(1, 5f);
-		index.addDocument("a", fields, variables);
-
-		fields.put("text", "b");
-		variables.put(1, 6f);
-		index.addDocument("b", fields, variables);
-	
-		fields.put("text", "c");
-		variables.put(1, 7f);
-		index.addDocument("c", fields, variables);
-		*/
-	}
-	
 }
