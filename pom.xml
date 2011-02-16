@@ -5,7 +5,7 @@
     <artifactId>oss-parent</artifactId>
     <version>6</version>
   </parent>
-  
+
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.indextank</groupId>
   <artifactId>indextank-java</artifactId>
@@ -114,3 +114,4 @@
   </build>
 
 </project>
+

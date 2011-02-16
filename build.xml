@@ -1,8 +1,8 @@
 <project default="jar" basedir ="." name="indextank-apiclient">
   <property name="project" value="indextank-apiclient"/>
   <property name="version" value="trunk"/>
-  
-  <property name="src.dir" location="src"/>
+
+  <property name="src.dir" location="src/main/java"/>
   <property name="thrift.dir" location="thrift"/>
   <property name="build.dir" location="build"/>
   <property name="output.dir"  location="output"/>
@@ -104,3 +104,4 @@
     <!--******************************************************************************************************-->
 
 </project>
+
