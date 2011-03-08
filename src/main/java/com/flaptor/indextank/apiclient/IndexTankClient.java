@@ -23,14 +23,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.json.simple.JSONValue;
+import org.json.simple.parser.JSONParser;
 
 public class IndexTankClient {
-
-    private static final String USER_AGENT = "IndexTank-Java/1.0.0";
-
+    
     private static final String GET_METHOD = "GET"; 
     private static final String PUT_METHOD = "PUT"; 
     private static final String DELETE_METHOD = "DELETE";
@@ -60,15 +60,24 @@ public class IndexTankClient {
         }
     }
     
-    private static Map<String, Object> callAPI(String method, String urlString, Map<String, String> params, String privatePass) throws IOException, HttpCodeException {
-        return callAPI(method, urlString, params, null, privatePass);
+    private static Object callAPI(String method, String urlString, Map<String, String> params, String privatePass) throws IOException, HttpCodeException {
+        return callAPI(method, urlString, params, (String)null, privatePass);
     }
 
-    private static Map<String, Object> callAPI(String method, String urlString, String privatePass) throws IOException, HttpCodeException {
-        return callAPI(method, urlString, null, null, privatePass);
+    private static Object callAPI(String method, String urlString, String privatePass) throws IOException, HttpCodeException {
+        return callAPI(method, urlString, null, (String)null, privatePass);
     }
     
-    private static Map<String, Object> callAPI(String method, String urlString, Map<String, String> params, Map<String, Object> data, String privatePass) throws IOException, HttpCodeException {
+    
+    private static Object callAPI(String method, String urlString, Map<String, String> params, Map<String, Object> data, String privatePass) throws IOException, HttpCodeException {
+        return callAPI(method, urlString, params, data == null ? null : JSONObject.toJSONString(data), privatePass);                
+    }
+    
+    private static Object callAPI(String method, String urlString, Map<String, String> params, List<Map<String, Object>> data, String privatePass) throws IOException, HttpCodeException {
+        return callAPI(method, urlString, params, data == null ? null : JSONArray.toJSONString(data), privatePass);             
+    }
+
+    private static Object callAPI(String method, String urlString, Map<String, String> params, String data, String privatePass) throws IOException, HttpCodeException {
         
         if (params!=null && !params.isEmpty()) {
             urlString += "?" + paramsToQueryString(params);
@@ -79,13 +88,12 @@ public class IndexTankClient {
         
         urlConnection.setDoOutput(true);
         urlConnection.setRequestProperty("Authorization", "Basic " + Base64.encodeBytes(privatePass.getBytes()));
-        urlConnection.setRequestProperty("User-Agent", USER_AGENT);
         urlConnection.setRequestMethod(method);
         
         if (method.equals(PUT_METHOD) && data != null) {
             // write
             OutputStreamWriter out = new OutputStreamWriter(urlConnection.getOutputStream(), "UTF-8");
-            out.write(JSONObject.toJSONString(data));
+            out.write(data);
             out.close();
         }
         
@@ -122,7 +130,12 @@ public class IndexTankClient {
 
         String jsonResponse = response.toString();
         if (!jsonResponse.isEmpty()) {
-            return (Map<String, Object>) JSONValue.parse(jsonResponse);
+            JSONParser parser = new JSONParser();
+            try {
+                return parser.parse(jsonResponse);
+            } catch (org.json.simple.parser.ParseException e) {
+                throw new RuntimeException(e);
+            }
         } else { 
             return null;
         }
@@ -135,7 +148,7 @@ public class IndexTankClient {
                 sb.append(URLEncoder.encode(entry.getKey(), "UTF-8"));
                 sb.append("=");
                 sb.append(URLEncoder.encode(entry.getValue(), "UTF-8"));
-                sb.append("&");
+                sb.append("&");         
             } catch (UnsupportedEncodingException e) {
             }
         }
@@ -321,6 +334,146 @@ public class IndexTankClient {
         
     }
 
+    /**
+     * A document to be added to the Index
+     * 
+     * @author flaptor
+     *
+     */
+    public static class Document {
+        /**
+         * unique identifier
+         */
+        private String id;
+        
+        /**
+         * fields
+         */
+        private Map<String, String> fields;
+        
+        /**
+         * scoring variables
+         */
+        private Map<Integer, Float> variables;
+        
+        /**
+         * faceting categories
+         */
+        private Map<String, String> categories;
+
+        public Document(String id, Map<String, String> fields, Map<Integer, Float> variables,
+                Map<String, String> categories) {
+            if (id == null) throw new IllegalArgumentException("Id cannot be null");
+            try {
+                if (id.getBytes("UTF-8").length > 1024) throw new IllegalArgumentException("documentId can not be longer than 1024 bytes when UTF-8 encoded.");
+            } catch (UnsupportedEncodingException e) {
+                throw new IllegalArgumentException("Illegal documentId encoding.");
+            }
+            
+            this.id = id;
+            this.fields = fields;
+            this.variables = variables;
+            this.categories = categories;
+        }
+        
+    }
+    
+    public static class BatchResults {
+        private boolean hasErrors;
+        private List<Boolean> results;
+        private List<String> errors;
+        private List<Document> documents;
+
+        public BatchResults(List<Boolean> results, List<String> errors,
+                List<Document> documents, boolean hasErrors) {
+            this.results = results;
+            this.errors = errors;
+            this.documents = documents;
+            this.hasErrors = hasErrors;
+        }
+        
+        public boolean getResult(int position) {
+            if (position >= results.size()) {
+                throw new IllegalArgumentException("Position off bounds (" + position + ")");
+            }
+            
+            return results.get(position);
+        }
+        
+        public String getErrorMessage(int position) {
+            if (position >= errors.size()) {
+                throw new IllegalArgumentException("Position off bounds (" + position + ")");
+            }
+            
+            return errors.get(position);
+        }
+        
+        public Document getDocument(int position) {
+            if (position >= documents.size()) {
+                throw new IllegalArgumentException("Position off bounds (" + position + ")");
+            }
+            
+            return documents.get(position);
+        }
+        
+        /**
+         * @return <code>true</code> if at least one of the documents failed to be indexed
+         */
+        public boolean hasErrors() {
+            return hasErrors;
+        }
+        
+        /**
+         * @return an iterable with all the {@link Document}s that couldn't be indexed. It can be used to retrofeed the addDocuments method.
+         */
+        public Iterable<Document> getFailedDocuments() {
+            return new Iterable<Document>() {
+                @Override
+                public Iterator<Document> iterator() {
+                    return new Iterator<Document>() {
+                        private Document next = computeNext();
+                        private int position = 0;
+                        
+                        private Document computeNext() {
+                            while (position < results.size() && results.get(position)) {
+                                position++;
+                            }
+                            
+                            if (position == results.size()) {
+                                return null;
+                            }
+                            
+                            Document next = documents.get(position);
+                            position++;
+                            return next;
+                        }
+                        
+                        @Override
+                        public void remove() {
+                            throw new UnsupportedOperationException();
+                        }
+                        
+                        @Override
+                        public Document next() {
+                            if (!hasNext()) {
+                                throw new NoSuchElementException();
+                            }
+                            
+                            Document result = this.next;
+                            this.next = computeNext();
+                            return result;
+                        }
+                        
+                        @Override
+                        public boolean hasNext() {
+                            return next != null;
+                        }
+                    };
+                }
+            };
+        }
+    }
+
     
     /**
      * Client to control a specific index.
@@ -346,7 +499,7 @@ public class IndexTankClient {
         }
         
         public SearchResults search(Query query) throws IOException, InvalidSyntaxException {
-            Map<String, String> params = new HashMap<String, String>();    
+            Map<String, String> params = new HashMap<String, String>(); 
             
             if (query.start != null) params.put("start", query.start.toString());
             if (query.length != null) params.put("len", query.length.toString());
@@ -392,7 +545,7 @@ public class IndexTankClient {
             params.put("q", query.queryString);
             
             try {
-                return new SearchResults(callAPI(GET_METHOD, indexUrl + SEARCH_URL, params, privatePass));
+                return new SearchResults((Map<String, Object>) callAPI(GET_METHOD, indexUrl + SEARCH_URL, params, privatePass));
             } catch (HttpCodeException e) {
                 if (e.httpCode == 400) {
                     throw new InvalidSyntaxException(e);
@@ -403,7 +556,7 @@ public class IndexTankClient {
         }
 
         /*public SearchResults search(String query, Integer start, Integer length, Integer scoringFunctionIndex, String[] snippetFields, String[] fetchFields, Map<String, List<String>> categoryFilters, Map<Integer, Float> queryVariables) throws IOException, InvalidSyntaxException {
-            Map<String, String> params = new HashMap<String, String>();    
+            Map<String, String> params = new HashMap<String, String>(); 
             
             if (start != null) params.put("start", start.toString());
             if (length != null) params.put("len", length.toString());
@@ -461,7 +614,72 @@ public class IndexTankClient {
                 }
             }
         }
-
+        
+        /**
+         * Indexes a batch of documents
+         * 
+         * @param documents an iterable of {@link Document}s 
+         * @return a {@link BatchResults} with the results information
+         * @throws IOException
+         * @throws IndexDoesNotExistException if the index name used to build the Index object does not match any index in the account
+         * @throws UnexpectedCodeException if an error occurs serverside. This represents a temporary error and it SHOULD BE HANDLED if a retry policy is implemented.
+         */
+        public BatchResults addDocuments(Iterable<Document> documents)  throws IOException, IndexDoesNotExistException {
+            List<Map<String, Object>> data = new ArrayList<Map<String,Object>>();
+            
+            for (Document document : documents) {
+                Map<String, Object> documentMap = new HashMap<String, Object>();
+                documentMap.put("docid", document.id);
+                documentMap.put("fields", document.fields);
+                if (document.variables != null) {
+                    documentMap.put("variables", document.variables);
+                }
+                if (document.categories != null) {
+                    documentMap.put("categories", document.categories);
+                }
+                
+                data.add(documentMap);
+            }
+            
+            try {
+                List<Map<String, Object>> results = (List<Map<String, Object>>) callAPI(PUT_METHOD, indexUrl + DOCS_URL, null, data, privatePass);
+                
+                List<Boolean> addeds = new ArrayList<Boolean>();
+                List<String> errors = new ArrayList<String>();
+                boolean hasErrors = false;
+                
+                for (int i = 0; i < results.size(); i++) {
+                    Map<String, Object> result = results.get(i);
+                    Boolean added = (Boolean) result.get("added");
+                    
+                    addeds.add(i, added);
+                    
+                    if (!added) {
+                        hasErrors = true;
+                        errors.add(i, (String)result.get("error"));
+                    }
+                }
+                
+                ArrayList<Document> documentsList = new ArrayList<Document>();
+                
+                for (Document document : documents) {
+                    documentsList.add(document);
+                }
+                
+                return new BatchResults(addeds, errors, documentsList, hasErrors);
+                
+            } catch (HttpCodeException e) {
+                if (e.httpCode == 400) {
+                    throw new IllegalArgumentException(e);
+                } else if (e.httpCode == 404) {
+                    throw new IndexDoesNotExistException(e);
+                } else {
+                    throw new UnexpectedCodeException(e);
+                }
+            }
+            
+        }
+        
         public void addDocument(String documentId, Map<String, String> fields) throws IOException, IndexDoesNotExistException {
             addDocument(documentId, fields, null);
         }
@@ -473,8 +691,8 @@ public class IndexTankClient {
          * @param fields map with the document fields
          * @param variables map integer -&gt; float with values for variables that can later be used in scoring functions during searches.
          * @throws IOException 
-         * @throws IndexDoesNotExistException
-         * @throws UnexpectedCodeException
+         * @throws IndexDoesNotExistException if the index name used to build the Index object does not match any index in the account
+         * @throws UnexpectedCodeException if an error occurs serverside. This represents a temporary error and it SHOULD BE HANDLED if a retry policy is implemented.
          */
         public void addDocument(String documentId, Map<String, String> fields, Map<Integer, Float> variables) throws IOException, IndexDoesNotExistException {
             if (null == documentId) throw new IllegalArgumentException("documentId can not be null.");
@@ -489,7 +707,11 @@ public class IndexTankClient {
             try {
                 callAPI(PUT_METHOD, indexUrl + DOCS_URL, null, data, privatePass);
             } catch (HttpCodeException e) {
-                if (e.httpCode == 404) {
+                if (e.httpCode == 400) {
+                    // Should throw InvalidArgument, but it breaks backward compatibility.
+                    throw new UnexpectedCodeException(e);
+                    //throw new InvalidArgumentException(e);
+                } else if (e.httpCode == 404) {
                     throw new IndexDoesNotExistException(e);
                 } else {
                     throw new UnexpectedCodeException(e);
@@ -544,7 +766,7 @@ public class IndexTankClient {
                 } else {
                     throw new UnexpectedCodeException(e);
                 }
-            }            
+            }           
         }
 
         /**
@@ -570,7 +792,7 @@ public class IndexTankClient {
                 } else {
                     throw new UnexpectedCodeException(e);
                 }
-            }            
+            }           
         }
         public void promote(String documentId, String query) throws IOException, IndexDoesNotExistException {
             if (null == documentId) throw new IllegalArgumentException("documentId can not be null");
@@ -586,7 +808,7 @@ public class IndexTankClient {
                 } else {
                     throw new UnexpectedCodeException(e);
                 }
-            }            
+            }           
         }
         
         public void addFunction(Integer functionIndex, String definition) throws IOException, IndexDoesNotExistException, InvalidSyntaxException {
@@ -603,7 +825,7 @@ public class IndexTankClient {
                 } else {
                     throw new UnexpectedCodeException(e);
                 }
-            }            
+            }           
         }
         
         public void deleteFunction(Integer functionIndex) throws IOException, IndexDoesNotExistException {
@@ -620,7 +842,7 @@ public class IndexTankClient {
         
         public Map<String, String> listFunctions() throws IndexDoesNotExistException, IOException {
             try {
-                Map<String, Object> responseMap = callAPI(GET_METHOD, indexUrl + FUNCTIONS_URL, privatePass);
+                Map<String, Object> responseMap = (Map<String, Object>) callAPI(GET_METHOD, indexUrl + FUNCTIONS_URL, privatePass);
                 Map<String, String> result = new HashMap<String, String>();
                 
                 for (Entry<String, Object> entry : responseMap.entrySet()) {
@@ -684,7 +906,7 @@ public class IndexTankClient {
         
         public void refreshMetadata() throws IOException, IndexDoesNotExistException {
             try {
-                metadata = callAPI(GET_METHOD, indexUrl, privatePass);
+                metadata = (Map<String, Object>) callAPI(GET_METHOD, indexUrl, privatePass);
             } catch (HttpCodeException e) {
                 if (e.httpCode == 404) {
                     throw new IndexDoesNotExistException(e);
@@ -760,7 +982,7 @@ public class IndexTankClient {
     public List<Index> listIndexes() throws IOException {
         try {
             List<Index> result = new ArrayList<Index>();
-            Map<String, Object> responseMap = callAPI(GET_METHOD, getIndexesUrl(), privatePass);
+            Map<String, Object> responseMap = (Map<String, Object>) callAPI(GET_METHOD, getIndexesUrl(), privatePass);
             
             for (Entry<String, Object> entry : responseMap.entrySet()) {
                 result.add(new Index(getIndexUrl(entry.getKey()), (Map<String, Object>) entry.getValue()));
@@ -781,7 +1003,7 @@ public class IndexTankClient {
         try {
             url = new java.net.URI("http", "none.com", "/" + indexName, null);
         } catch (URISyntaxException e) {
-            return indexName;
+            return indexName;   
         }
         return url.getRawPath().substring(1);
     }
@@ -791,43 +1013,4 @@ public class IndexTankClient {
         return indexesUrl;
     }
 
-    public static void main(String[] args) throws IOException, IndexDoesNotExistException, InvalidSyntaxException {
-        IndexTankClient client = new IndexTankClient("http://:MQVbTNsBk0YBFj@8mt1o.api.indextank.com");
-        Index index = client.getIndex("newJars");
-
-        System.out.println(index.search(Query.forString("a OR b OR c").withFunctionFilter(1, 2d, Double.POSITIVE_INFINITY)));
-        
-        /*Map<String, String> fields = new HashMap<String, String>();
-        Map<Integer, Float> variables = new HashMap<Integer, Float>();
-        
-        fields.put("text", "a b c");
-        variables.put(1, -1f);
-        index.addDocument("abc", fields, variables);
-
-        fields.put("text", "a b");
-        variables.put(1, 2f);
-        index.addDocument("ab", fields, variables);
-
-        fields.put("text", "a c");
-        variables.put(1, 3f);
-        index.addDocument("ac", fields, variables);
-    
-        fields.put("text", "b c");
-        variables.put(1, 4f);
-        index.addDocument("bc", fields, variables);
-        
-        fields.put("text", "a");
-        variables.put(1, 5f);
-        index.addDocument("a", fields, variables);
-
-        fields.put("text", "b");
-        variables.put(1, 6f);
-        index.addDocument("b", fields, variables);
-    
-        fields.put("text", "c");
-        variables.put(1, 7f);
-        index.addDocument("c", fields, variables);
-        */
-    }
-    
 }
