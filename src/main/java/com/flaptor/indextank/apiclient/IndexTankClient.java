@@ -378,6 +378,12 @@ public class IndexTankClient {
         
     }
     
+    /**
+     * Aggregation of the outcome of indexing every document in the batch.
+     * 
+     * @author flaptor
+     *
+     */
     public static class BatchResults {
         private boolean hasErrors;
         private List<Boolean> results;
@@ -400,6 +406,13 @@ public class IndexTankClient {
             return results.get(position);
         }
         
+        /**
+         * Get the error message for a specific position. Will be null if
+         * getResult(position) is false. 
+         * 
+         * @param position
+         * @return the error message
+         */
         public String getErrorMessage(int position) {
             if (position >= errors.size()) {
                 throw new IllegalArgumentException("Position off bounds (" + position + ")");
@@ -695,6 +708,21 @@ public class IndexTankClient {
          * @throws UnexpectedCodeException if an error occurs serverside. This represents a temporary error and it SHOULD BE HANDLED if a retry policy is implemented.
          */
         public void addDocument(String documentId, Map<String, String> fields, Map<Integer, Float> variables) throws IOException, IndexDoesNotExistException {
+        	addDocument(documentId, fields, variables, null);
+        }
+        
+        /**
+         * Indexes a document for the given docid and fields.
+         *  
+         * @param documentId unique document identifier. Can't be longer than 1024 bytes when UTF-8 encoded. Never {@code null}.
+         * @param fields map with the document fields
+         * @param variables map integer -&gt; float with values for variables that can later be used in scoring functions during searches.
+         * @param categories map string -&gt; string with values for the faceting categories for this document.
+         * @throws IOException 
+         * @throws IndexDoesNotExistException if the index name used to build the Index object does not match any index in the account
+         * @throws UnexpectedCodeException if an error occurs serverside. This represents a temporary error and it SHOULD BE HANDLED if a retry policy is implemented.
+         */
+        public void addDocument(String documentId, Map<String, String> fields, Map<Integer, Float> variables, Map<String, String> categories) throws IOException, IndexDoesNotExistException {
             if (null == documentId) throw new IllegalArgumentException("documentId can not be null.");
             if (documentId.getBytes("UTF-8").length > 1024) throw new IllegalArgumentException("documentId can not be longer than 1024 bytes when UTF-8 encoded.");
             Map<String, Object> data = new HashMap<String, Object>();
@@ -702,6 +730,10 @@ public class IndexTankClient {
             data.put("fields", fields);
             if (variables != null) {
                 data.put("variables", variables);
+            }
+            
+            if (categories != null) {
+            	data.put("categories", categories);
             }
             
             try {
@@ -1012,5 +1044,4 @@ public class IndexTankClient {
         String indexesUrl = apiUrl + "v1/indexes/";
         return indexesUrl;
     }
-
 }
