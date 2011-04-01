@@ -86,6 +86,8 @@ public class IndexTankClient {
         
         HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
         
+        // GAE fix: http://code.google.com/p/googleappengine/issues/detail?id=1454
+        urlConnection.setInstanceFollowRedirects(false);
         urlConnection.setDoOutput(true);
         urlConnection.setRequestProperty("Authorization", "Basic " + Base64.encodeBytes(privatePass.getBytes()));
         urlConnection.setRequestMethod(method);
