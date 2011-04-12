@@ -1,4 +1,4 @@
-package com.flaptor.indextank.apiclient.spec;
+package com.flaptor.indextank.apiclient;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -13,11 +13,8 @@ import java.util.NoSuchElementException;
 
 import org.json.simple.JSONObject;
 
-import com.flaptor.indextank.apiclient.IndexAlreadyExistsException;
-import com.flaptor.indextank.apiclient.IndexDoesNotExistException;
-import com.flaptor.indextank.apiclient.MaximumIndexesExceededException;
 
-public interface ClientInterface {
+public interface ApiClient {
 
     public class HttpCodeException extends Exception {
         /**
@@ -49,10 +46,10 @@ public interface ClientInterface {
         private boolean hasErrors;
         private List<Boolean> results;
         private List<String> errors;
-        private List<ClientInterface.Document> documents;
+        private List<ApiClient.Document> documents;
 
         public BatchResults(List<Boolean> results, List<String> errors,
-                List<ClientInterface.Document> documents, boolean hasErrors) {
+                List<ApiClient.Document> documents, boolean hasErrors) {
             this.results = results;
             this.errors = errors;
             this.documents = documents;
@@ -84,7 +81,7 @@ public interface ClientInterface {
             return errors.get(position);
         }
 
-        public ClientInterface.Document getDocument(int position) {
+        public ApiClient.Document getDocument(int position) {
             if (position >= documents.size()) {
                 throw new IllegalArgumentException("Position off bounds ("
                         + position + ")");
@@ -102,19 +99,19 @@ public interface ClientInterface {
         }
 
         /**
-         * @return an iterable with all the {@link ClientInterface.Document}s
+         * @return an iterable with all the {@link ApiClient.Document}s
          *         that couldn't be indexed. It can be used to retrofeed the
          *         addDocuments method.
          */
-        public Iterable<ClientInterface.Document> getFailedDocuments() {
-            return new Iterable<ClientInterface.Document>() {
+        public Iterable<ApiClient.Document> getFailedDocuments() {
+            return new Iterable<ApiClient.Document>() {
                 @Override
-                public Iterator<ClientInterface.Document> iterator() {
-                    return new Iterator<ClientInterface.Document>() {
-                        private ClientInterface.Document next = computeNext();
+                public Iterator<ApiClient.Document> iterator() {
+                    return new Iterator<ApiClient.Document>() {
+                        private ApiClient.Document next = computeNext();
                         private int position = 0;
 
-                        private ClientInterface.Document computeNext() {
+                        private ApiClient.Document computeNext() {
                             while (position < results.size()
                                     && results.get(position)) {
                                 position++;
@@ -124,7 +121,7 @@ public interface ClientInterface {
                                 return null;
                             }
 
-                            ClientInterface.Document next = documents
+                            ApiClient.Document next = documents
                                     .get(position);
                             position++;
                             return next;
@@ -136,12 +133,12 @@ public interface ClientInterface {
                         }
 
                         @Override
-                        public ClientInterface.Document next() {
+                        public ApiClient.Document next() {
                             if (!hasNext()) {
                                 throw new NoSuchElementException();
                             }
 
-                            ClientInterface.Document result = this.next;
+                            ApiClient.Document result = this.next;
                             this.next = computeNext();
                             return result;
                         }
@@ -410,7 +407,7 @@ public interface ClientInterface {
             return this;
         }
     
-        public Map<String, String> toParameterMap() {
+        Map<String, String> toParameterMap() {
             Map<String, String> params = new HashMap<String, String>();
     
             if (start != null)
@@ -487,14 +484,14 @@ public interface ClientInterface {
     
     }
 
-    IndexInterface getIndex(String indexName);
+    Index getIndex(String indexName);
 
-    IndexInterface createIndex(String indexName) throws IOException,
+    Index createIndex(String indexName) throws IOException,
             IndexAlreadyExistsException, MaximumIndexesExceededException;
 
     void deleteIndex(String indexName) throws IOException,
             IndexDoesNotExistException;
 
-    List<IndexInterface> listIndexes() throws IOException;
+    List<? extends Index> listIndexes() throws IOException;
 
 }

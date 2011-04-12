@@ -25,10 +25,8 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
-import com.flaptor.indextank.apiclient.spec.ClientInterface;
-import com.flaptor.indextank.apiclient.spec.IndexInterface;
 
-public class IndexTankClient implements ClientInterface {
+public class IndexTankClient implements ApiClient {
 
     private static final String GET_METHOD = "GET";
     private static final String PUT_METHOD = "PUT";
@@ -163,7 +161,7 @@ public class IndexTankClient implements ClientInterface {
      * @author flaptor
      * 
      */
-    public class Index implements IndexInterface {
+    public class Index implements com.flaptor.indextank.apiclient.Index {
         private final String indexUrl;
         private Map<String, Object> metadata;
 
@@ -179,11 +177,11 @@ public class IndexTankClient implements ClientInterface {
         @Override
         public SearchResults search(String query) throws IOException,
                 InvalidSyntaxException {
-            return search(ClientInterface.Query.forString(query));
+            return search(ApiClient.Query.forString(query));
         }
 
         @Override
-        public SearchResults search(ClientInterface.Query query) throws IOException,
+        public SearchResults search(ApiClient.Query query) throws IOException,
                 InvalidSyntaxException {
             Map<String, String> params = query.toParameterMap();
 
@@ -564,14 +562,14 @@ public class IndexTankClient implements ClientInterface {
     }
 
     @Override
-    public IndexInterface getIndex(String indexName) {
+    public Index getIndex(String indexName) {
         return new Index(getIndexUrl(indexName));
     }
 
     @Override
-    public IndexInterface createIndex(String indexName) throws IOException,
+    public Index createIndex(String indexName) throws IOException,
             IndexAlreadyExistsException, MaximumIndexesExceededException {
-        IndexInterface index = getIndex(indexName);
+        Index index = getIndex(indexName);
         index.create();
         return index;
     }
@@ -583,9 +581,9 @@ public class IndexTankClient implements ClientInterface {
     }
 
     @Override
-    public List<IndexInterface> listIndexes() throws IOException {
+    public List<Index> listIndexes() throws IOException {
         try {
-            List<IndexInterface> result = new ArrayList<IndexInterface>();
+            List<Index> result = new ArrayList<Index>();
             Map<String, Object> responseMap = (Map<String, Object>) callAPI(
                     GET_METHOD, getIndexesUrl(), privatePass);
 

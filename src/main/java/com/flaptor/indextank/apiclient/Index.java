@@ -1,22 +1,16 @@
-package com.flaptor.indextank.apiclient.spec;
+package com.flaptor.indextank.apiclient;
 
 import java.io.IOException;
 import java.util.Date;
 import java.util.Map;
 
-import com.flaptor.indextank.apiclient.IndexAlreadyExistsException;
-import com.flaptor.indextank.apiclient.IndexDoesNotExistException;
-import com.flaptor.indextank.apiclient.InvalidSyntaxException;
-import com.flaptor.indextank.apiclient.MaximumIndexesExceededException;
-import com.flaptor.indextank.apiclient.UnexpectedCodeException;
-import com.flaptor.indextank.apiclient.spec.ClientInterface.Query;
 
-public interface IndexInterface {
+public interface Index {
 
-    ClientInterface.SearchResults search(String query) throws IOException,
+    ApiClient.SearchResults search(String query) throws IOException,
             InvalidSyntaxException;
 
-    ClientInterface.SearchResults search(ClientInterface.Query query) throws IOException,
+    ApiClient.SearchResults search(ApiClient.Query query) throws IOException,
             InvalidSyntaxException;
 
     /**
@@ -36,8 +30,8 @@ public interface IndexInterface {
      * Indexes a batch of documents
      * 
      * @param documents
-     *            an iterable of {@link ClientInterface.Document}s
-     * @return a {@link ClientInterface.BatchResults} with the results
+     *            an iterable of {@link ApiClient.Document}s
+     * @return a {@link ApiClient.BatchResults} with the results
      *         information
      * @throws IOException
      * @throws IndexDoesNotExistException
@@ -48,8 +42,8 @@ public interface IndexInterface {
      *             error and it SHOULD BE HANDLED if a retry policy is
      *             implemented.
      */
-    ClientInterface.BatchResults addDocuments(
-            Iterable<ClientInterface.Document> documents) throws IOException,
+    ApiClient.BatchResults addDocuments(
+            Iterable<ApiClient.Document> documents) throws IOException,
             IndexDoesNotExistException;
 
     void addDocument(String documentId, Map<String, String> fields)
