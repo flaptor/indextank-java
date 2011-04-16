@@ -1,9 +1,11 @@
 package com.flaptor.indextank.apiclient;
 
+import com.flaptor.indextank.apiclient.IndexTankClient.HttpCodeException;
+
 
 public class AuthenticationFailedException extends Exception {
     public AuthenticationFailedException(
-            ApiClient.HttpCodeException source) {
+            HttpCodeException source) {
         super(source.getMessage());
     }
 }

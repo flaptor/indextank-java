@@ -7,10 +7,10 @@ import java.util.Map;
 
 public interface Index {
 
-    ApiClient.SearchResults search(String query) throws IOException,
+    IndexTankClient.SearchResults search(String query) throws IOException,
             InvalidSyntaxException;
 
-    ApiClient.SearchResults search(ApiClient.Query query) throws IOException,
+    IndexTankClient.SearchResults search(IndexTankClient.Query query) throws IOException,
             InvalidSyntaxException;
 
     /**
@@ -30,8 +30,8 @@ public interface Index {
      * Indexes a batch of documents
      * 
      * @param documents
-     *            an iterable of {@link ApiClient.Document}s
-     * @return a {@link ApiClient.BatchResults} with the results
+     *            an iterable of {@link IndexTankClient.Document}s
+     * @return a {@link IndexTankClient.BatchResults} with the results
      *         information
      * @throws IOException
      * @throws IndexDoesNotExistException
@@ -42,8 +42,8 @@ public interface Index {
      *             error and it SHOULD BE HANDLED if a retry policy is
      *             implemented.
      */
-    ApiClient.BatchResults addDocuments(
-            Iterable<ApiClient.Document> documents) throws IOException,
+    IndexTankClient.BatchResults addDocuments(
+            Iterable<IndexTankClient.Document> documents) throws IOException,
             IndexDoesNotExistException;
 
     void addDocument(String documentId, Map<String, String> fields)
