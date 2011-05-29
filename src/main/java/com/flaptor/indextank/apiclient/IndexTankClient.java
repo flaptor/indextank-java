@@ -712,8 +712,8 @@ public class IndexTankClient implements ApiClient {
                         PUT_METHOD, indexUrl + DOCS_URL, null, data,
                         privatePass);
 
-                List<Boolean> addeds = new ArrayList<Boolean>();
-                List<String> errors = new ArrayList<String>();
+                List<Boolean> addeds = new ArrayList<Boolean>(results.size());
+                List<String> errors = new ArrayList<String>(results.size());
                 boolean hasErrors = false;
 
                 for (int i = 0; i < results.size(); i++) {
