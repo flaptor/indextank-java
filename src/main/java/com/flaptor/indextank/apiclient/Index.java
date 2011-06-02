@@ -42,7 +42,7 @@ public interface Index {
      *             error and it SHOULD BE HANDLED if a retry policy is
      *             implemented.
      */
-    IndexTankClient.BatchResults addDocuments(
+    IndexTankClient.BatchInsertResults addDocuments(
             Iterable<IndexTankClient.Document> documents) throws IOException,
             IndexDoesNotExistException;
 
@@ -123,8 +123,8 @@ public interface Index {
      * @throws IndexDoesNotExistException
      * @throws UnexpectedCodeException
      */
-    void deleteDocuments(Iterable<String> documentIds) throws IOException,
-            IndexDoesNotExistException;
+    IndexTankClient.BulkDeleteResults deleteDocuments(Iterable<String> documentIds)
+    		throws IOException, IndexDoesNotExistException;
     
     /**
      * Updates the variables of the document for the given docid.

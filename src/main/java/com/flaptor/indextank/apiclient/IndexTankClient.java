@@ -51,24 +51,19 @@ public class IndexTankClient implements ApiClient {
         }
     }
 
-    /**
-     * Aggregation of the outcome of indexing every document in the batch.
-     * 
-     * @author flaptor
-     * 
-     */
-    public static class BatchResults {
+    
+    static abstract class BatchResults<T> {
         private boolean hasErrors;
         private List<Boolean> results;
         private List<String> errors;
-        private List<Document> documents;
+        private List<T> elements;
 
-        public BatchResults(List<Boolean> results, List<String> errors,
-                List<Document> documents, boolean hasErrors) {
+        public BatchResults(List<Boolean> results, List<String> errors, 
+        		List<T> elements, boolean hasErrors) {
             this.results = results;
             this.errors = errors;
-            this.documents = documents;
             this.hasErrors = hasErrors;
+            this.elements = elements;
         }
 
         public boolean getResult(int position) {
@@ -96,15 +91,6 @@ public class IndexTankClient implements ApiClient {
             return errors.get(position);
         }
 
-        public Document getDocument(int position) {
-            if (position >= documents.size()) {
-                throw new IllegalArgumentException("Position off bounds ("
-                        + position + ")");
-            }
-
-            return documents.get(position);
-        }
-
         /**
          * @return <code>true</code> if at least one of the documents failed to
          *         be indexed
@@ -112,21 +98,25 @@ public class IndexTankClient implements ApiClient {
         public boolean hasErrors() {
             return hasErrors;
         }
+        
+        protected T getElement(int position) {
+            return elements.get(position);
+        }
 
         /**
          * @return an iterable with all the {@link Document}s
          *         that couldn't be indexed. It can be used to retrofeed the
          *         addDocuments method.
          */
-        public Iterable<Document> getFailedDocuments() {
-            return new Iterable<Document>() {
+        protected Iterable<T> getFailedElements() {
+            return new Iterable<T>() {
                 @Override
-                public Iterator<Document> iterator() {
-                    return new Iterator<Document>() {
-                        private Document next = computeNext();
+                public Iterator<T> iterator() {
+                    return new Iterator<T>() {
+                        private T next = computeNext();
                         private int position = 0;
 
-                        private Document computeNext() {
+                        private T computeNext() {
                             while (position < results.size()
                                     && results.get(position)) {
                                 position++;
@@ -136,8 +126,7 @@ public class IndexTankClient implements ApiClient {
                                 return null;
                             }
 
-                            Document next = documents
-                                    .get(position);
+                            T next = elements.get(position);
                             position++;
                             return next;
                         }
@@ -148,12 +137,12 @@ public class IndexTankClient implements ApiClient {
                         }
 
                         @Override
-                        public Document next() {
+                        public T next() {
                             if (!hasNext()) {
                                 throw new NoSuchElementException();
                             }
 
-                            Document result = this.next;
+                            T result = this.next;
                             this.next = computeNext();
                             return result;
                         }
@@ -165,6 +154,50 @@ public class IndexTankClient implements ApiClient {
                     };
                 }
             };
+        }
+    }
+
+    /**
+     * Aggregation of the outcome of indexing every document in the batch.
+     * 
+     * @author flaptor
+     * 
+     */
+    public static class BatchInsertResults extends BatchResults<Document> {
+
+        public BatchInsertResults(List<Boolean> results, List<String> errors,
+                List<Document> documents, boolean hasErrors) {
+        	super(results, errors, documents, hasErrors);
+        }
+
+        public Document getDocument(int position) {
+            return this.getElement(position);
+        }
+        
+        public Iterable<Document> getFailedDocuments() {
+        	return this.getFailedElements();
+        }
+    }
+
+    /**
+     * Aggregation of the outcome of deleting every document in the batch.
+     * 
+     * @author flaptor
+     * 
+     */
+    public static class BulkDeleteResults extends BatchResults<String> {
+
+        public BulkDeleteResults(List<Boolean> results, List<String> errors,
+                List<String> docids, boolean hasErrors) {
+        	super(results, errors, docids, hasErrors);
+        }
+
+        public String getDocid(int position) {
+            return this.getElement(position);
+        }
+        
+        public Iterable<String> getFailedDocids() {
+        	return this.getFailedElements();
         }
     }
 
@@ -700,7 +733,7 @@ public class IndexTankClient implements ApiClient {
         }
 
         @Override
-        public BatchResults addDocuments(Iterable<Document> documents)
+        public BatchInsertResults addDocuments(Iterable<Document> documents)
                 throws IOException, IndexDoesNotExistException {
             List<Map<String, Object>> data = new ArrayList<Map<String, Object>>();
 
@@ -736,7 +769,7 @@ public class IndexTankClient implements ApiClient {
                     documentsList.add(document);
                 }
 
-                return new BatchResults(addeds, errors, documentsList,
+                return new BatchInsertResults(addeds, errors, documentsList,
                         hasErrors);
 
             } catch (HttpCodeException e) {
@@ -822,16 +855,43 @@ public class IndexTankClient implements ApiClient {
         }
 
         @Override
-        public void deleteDocuments(Iterable<String> documentIds) throws IOException,
-                IndexDoesNotExistException {
+        public BulkDeleteResults deleteDocuments(Iterable<String> documentIds)
+        		throws IOException, IndexDoesNotExistException {
             if (null == documentIds)
                 throw new IllegalArgumentException("documentIds can not be null");
             
             ParameterMap params = new ParameterMap();
             params.addAll("docid", documentIds);
-
+            
             try {
-                callAPI(DELETE_METHOD, indexUrl + DOCS_URL, params, privatePass);
+            	List<Map<String, Object>> results = (List<Map<String, Object>>) 
+            		callAPI(DELETE_METHOD, indexUrl + DOCS_URL, params, privatePass);
+            	
+                List<Boolean> deleted = new ArrayList<Boolean>(results.size());
+                List<String> errors = new ArrayList<String>(results.size());
+                boolean hasErrors = false;
+
+                for (int i = 0; i < results.size(); i++) {
+                    Map<String, Object> result = results.get(i);
+                    Boolean wasDeleted = (Boolean) result.get("deleted");
+
+                    deleted.add(i, wasDeleted);
+
+                    if (!wasDeleted) {
+                        hasErrors = true;
+                        errors.add(i, (String) result.get("error"));
+                    }
+                }
+
+                ArrayList<String> docidList = new ArrayList<String>();
+
+                for (String docid : documentIds) {
+                	docidList.add(docid);
+                }
+
+                return new BulkDeleteResults(deleted, errors, docidList,
+                        hasErrors);
+            
             } catch (HttpCodeException e) {
                 if (e.getHttpCode() == 404) {
                     throw new IndexDoesNotExistException(e);
