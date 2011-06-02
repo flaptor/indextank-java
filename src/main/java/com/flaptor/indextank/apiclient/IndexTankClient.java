@@ -21,13 +21,13 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
+import java.util.Set;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-
 
 public class IndexTankClient implements ApiClient {
     
@@ -339,7 +339,7 @@ public class IndexTankClient implements ApiClient {
     
         public Query withFetchFields(List<String> fetchFields) {
             if (fetchFields == null) {
-                throw new NullPointerException("fetchFields must be non-null");
+            	throw new NullPointerException("fetchFields must be non-null");
             }
     
             if (this.fetchFields == null) {
@@ -422,8 +422,8 @@ public class IndexTankClient implements ApiClient {
             return this;
         }
     
-        Map<String, String> toParameterMap() {
-            Map<String, String> params = new HashMap<String, String>();
+        ParameterMap toParameterMap() {
+        	ParameterMap params = new ParameterMap();
     
             if (start != null)
                 params.put("start", start.toString());
@@ -447,7 +447,7 @@ public class IndexTankClient implements ApiClient {
                             + ":"
                             + (range.ceil == Double.POSITIVE_INFINITY ? "*"
                                     : String.valueOf(range.ceil));
-                    String param = params.get(key);
+                    String param = params.getFirst(key);
                     if (param == null) {
                         params.put(key, value);
                     } else {
@@ -464,7 +464,7 @@ public class IndexTankClient implements ApiClient {
                             + ":"
                             + (range.ceil == Double.POSITIVE_INFINITY ? "*"
                                     : String.valueOf(range.ceil));
-                    String param = params.get(key);
+                    String param = params.getFirst(key);
                     if (param == null) {
                         params.put(key, value);
                     } else {
@@ -514,7 +514,7 @@ public class IndexTankClient implements ApiClient {
             "yyyy-MM-dd'T'HH:mm:ssz");
 
     private static Object callAPI(String method, String urlString,
-            Map<String, String> params, String privatePass) throws IOException,
+            ParameterMap params, String privatePass) throws IOException,
             HttpCodeException {
         return callAPI(method, urlString, params, (String) null, privatePass);
     }
@@ -525,21 +525,21 @@ public class IndexTankClient implements ApiClient {
     }
 
     private static Object callAPI(String method, String urlString,
-            Map<String, String> params, Map<String, Object> data,
+    		ParameterMap params, Map<String, Object> data,
             String privatePass) throws IOException, HttpCodeException {
         return callAPI(method, urlString, params, data == null ? null
                 : JSONObject.toJSONString(data), privatePass);
     }
 
     private static Object callAPI(String method, String urlString,
-            Map<String, String> params, List<Map<String, Object>> data,
+    		ParameterMap params, List<Map<String, Object>> data,
             String privatePass) throws IOException, HttpCodeException {
         return callAPI(method, urlString, params, data == null ? null
                 : JSONArray.toJSONString(data), privatePass);
     }
 
     private static Object callAPI(String method, String urlString,
-            Map<String, String> params, String data, String privatePass)
+    		ParameterMap params, String data, String privatePass)
             throws IOException, HttpCodeException {
 
         if (params != null && !params.isEmpty()) {
@@ -611,16 +611,18 @@ public class IndexTankClient implements ApiClient {
         }
     }
 
-    private static String paramsToQueryString(Map<String, String> params) {
+    private static String paramsToQueryString(ParameterMap params) {
         StringBuilder sb = new StringBuilder();
-        for (Entry<String, String> entry : params.entrySet()) {
-            try {
-                sb.append(URLEncoder.encode(entry.getKey(), "UTF-8"));
-                sb.append("=");
-                sb.append(URLEncoder.encode(entry.getValue(), "UTF-8"));
-                sb.append("&");
-            } catch (UnsupportedEncodingException e) {
-            }
+        for (String key : params.keyset()) {
+        	for (String value : params.get(key)){
+                try {
+                    sb.append(URLEncoder.encode(key, "UTF-8"));
+                    sb.append("=");
+                    sb.append(URLEncoder.encode(value, "UTF-8"));
+                    sb.append("&");
+                } catch (UnsupportedEncodingException e) {
+                }
+        	}
         }
 
         return sb.toString();
@@ -654,8 +656,8 @@ public class IndexTankClient implements ApiClient {
         @Override
         public SearchResults search(Query query) throws IOException,
                 InvalidSyntaxException {
-            Map<String, String> params = query.toParameterMap();
-
+            ParameterMap params = query.toParameterMap();
+            
             try {
                 return new SearchResults((Map<String, Object>) callAPI(
                         GET_METHOD, indexUrl + SEARCH_URL, params, privatePass));
@@ -805,8 +807,28 @@ public class IndexTankClient implements ApiClient {
                 IndexDoesNotExistException {
             if (null == documentId)
                 throw new IllegalArgumentException("documentId can not be null");
-            Map<String, String> params = new HashMap<String, String>();
+            ParameterMap params = new ParameterMap();
             params.put("docid", documentId);
+
+            try {
+                callAPI(DELETE_METHOD, indexUrl + DOCS_URL, params, privatePass);
+            } catch (HttpCodeException e) {
+                if (e.getHttpCode() == 404) {
+                    throw new IndexDoesNotExistException(e);
+                } else {
+                    throw new UnexpectedCodeException(e);
+                }
+            }
+        }
+
+        @Override
+        public void deleteDocuments(Iterable<String> documentIds) throws IOException,
+                IndexDoesNotExistException {
+            if (null == documentIds)
+                throw new IllegalArgumentException("documentIds can not be null");
+            
+            ParameterMap params = new ParameterMap();
+            params.addAll("docid", documentIds);
 
             try {
                 callAPI(DELETE_METHOD, indexUrl + DOCS_URL, params, privatePass);
@@ -1086,5 +1108,61 @@ public class IndexTankClient implements ApiClient {
     private String getIndexesUrl() {
         String indexesUrl = apiUrl + "v1/indexes/";
         return indexesUrl;
+    }
+    
+    private static class ParameterMap {
+    	private Map<String, List<String>> innerMap;
+    	
+    	ParameterMap() {
+    		this.innerMap = new HashMap<String, List<String>>();
+        }
+
+    	public Set<String> keyset() {
+	        return this.innerMap.keySet();
+        }
+
+		public void addAll(String key, Iterable<String> newvalues) {
+    		List<String> values = this.innerMap.get(key);
+    		if (values == null) {
+    			values = new ArrayList<String>();
+    			this.innerMap.put(key, values);
+    		}
+
+    		for (String newvalue : newvalues) {
+				values.add(newvalue);
+            }
+        }
+
+		public boolean isEmpty() {
+	        return this.innerMap.isEmpty();
+        }
+
+    	void add(String key, String value){
+    		List<String> values = this.innerMap.get(key);
+    		if (values != null) {
+    			values.add(value);
+    		} else {
+    			this.put(key, value);
+    		}
+    	}
+
+    	void put(String key, String value){
+    		List<String> values = new ArrayList<String>();
+    		values.add(value);
+    		this.innerMap.put(key, values);
+    	}
+
+    	String getFirst(String key){
+    		List<String> values = this.innerMap.get(key);
+    		if (values != null && values.size() > 0)
+    			return values.get(0);
+    		else 
+    			return null;
+    	}
+
+    	List<String> get(String key){
+    		return this.innerMap.get(key);
+    	}
+
     }
 }

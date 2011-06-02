@@ -114,6 +114,19 @@ public interface Index {
             IndexDoesNotExistException;
 
     /**
+     * Deletes the given docids from the index if they existed. Otherwise, does
+     * nothing.
+     * 
+     * @param documentIds
+     *            a iterable with unique document identifiers. Never {@code null}.
+     * @throws IOException
+     * @throws IndexDoesNotExistException
+     * @throws UnexpectedCodeException
+     */
+    void deleteDocuments(Iterable<String> documentIds) throws IOException,
+            IndexDoesNotExistException;
+    
+    /**
      * Updates the variables of the document for the given docid.
      * 
      * @param documentId
