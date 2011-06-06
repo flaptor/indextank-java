@@ -21,13 +21,13 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
+import java.util.Set;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-
 
 public class IndexTankClient implements ApiClient {
     
@@ -51,24 +51,19 @@ public class IndexTankClient implements ApiClient {
         }
     }
 
-    /**
-     * Aggregation of the outcome of indexing every document in the batch.
-     * 
-     * @author flaptor
-     * 
-     */
-    public static class BatchResults {
+    
+    static abstract class AbstractBatchResults<T> {
         private boolean hasErrors;
         private List<Boolean> results;
         private List<String> errors;
-        private List<Document> documents;
+        private List<T> elements;
 
-        public BatchResults(List<Boolean> results, List<String> errors,
-                List<Document> documents, boolean hasErrors) {
+        public AbstractBatchResults(List<Boolean> results, List<String> errors, 
+        		List<T> elements, boolean hasErrors) {
             this.results = results;
             this.errors = errors;
-            this.documents = documents;
             this.hasErrors = hasErrors;
+            this.elements = elements;
         }
 
         public boolean getResult(int position) {
@@ -96,15 +91,6 @@ public class IndexTankClient implements ApiClient {
             return errors.get(position);
         }
 
-        public Document getDocument(int position) {
-            if (position >= documents.size()) {
-                throw new IllegalArgumentException("Position off bounds ("
-                        + position + ")");
-            }
-
-            return documents.get(position);
-        }
-
         /**
          * @return <code>true</code> if at least one of the documents failed to
          *         be indexed
@@ -112,21 +98,25 @@ public class IndexTankClient implements ApiClient {
         public boolean hasErrors() {
             return hasErrors;
         }
+        
+        protected T getElement(int position) {
+            return elements.get(position);
+        }
 
         /**
          * @return an iterable with all the {@link Document}s
          *         that couldn't be indexed. It can be used to retrofeed the
          *         addDocuments method.
          */
-        public Iterable<Document> getFailedDocuments() {
-            return new Iterable<Document>() {
+        protected Iterable<T> getFailedElements() {
+            return new Iterable<T>() {
                 @Override
-                public Iterator<Document> iterator() {
-                    return new Iterator<Document>() {
-                        private Document next = computeNext();
+                public Iterator<T> iterator() {
+                    return new Iterator<T>() {
+                        private T next = computeNext();
                         private int position = 0;
 
-                        private Document computeNext() {
+                        private T computeNext() {
                             while (position < results.size()
                                     && results.get(position)) {
                                 position++;
@@ -136,8 +126,7 @@ public class IndexTankClient implements ApiClient {
                                 return null;
                             }
 
-                            Document next = documents
-                                    .get(position);
+                            T next = elements.get(position);
                             position++;
                             return next;
                         }
@@ -148,12 +137,12 @@ public class IndexTankClient implements ApiClient {
                         }
 
                         @Override
-                        public Document next() {
+                        public T next() {
                             if (!hasNext()) {
                                 throw new NoSuchElementException();
                             }
 
-                            Document result = this.next;
+                            T result = this.next;
                             this.next = computeNext();
                             return result;
                         }
@@ -165,6 +154,50 @@ public class IndexTankClient implements ApiClient {
                     };
                 }
             };
+        }
+    }
+
+    /**
+     * Aggregation of the outcome of indexing every document in the batch.
+     * 
+     * @author flaptor
+     * 
+     */
+    public static class BatchResults extends AbstractBatchResults<Document> {
+
+        public BatchResults(List<Boolean> results, List<String> errors,
+                List<Document> documents, boolean hasErrors) {
+        	super(results, errors, documents, hasErrors);
+        }
+
+        public Document getDocument(int position) {
+            return this.getElement(position);
+        }
+        
+        public Iterable<Document> getFailedDocuments() {
+        	return this.getFailedElements();
+        }
+    }
+
+    /**
+     * Aggregation of the outcome of deleting every document in the batch.
+     * 
+     * @author flaptor
+     * 
+     */
+    public static class BulkDeleteResults extends AbstractBatchResults<String> {
+
+        public BulkDeleteResults(List<Boolean> results, List<String> errors,
+                List<String> docids, boolean hasErrors) {
+        	super(results, errors, docids, hasErrors);
+        }
+
+        public String getDocid(int position) {
+            return this.getElement(position);
+        }
+        
+        public Iterable<String> getFailedDocids() {
+        	return this.getFailedElements();
         }
     }
 
@@ -422,8 +455,8 @@ public class IndexTankClient implements ApiClient {
             return this;
         }
     
-        Map<String, String> toParameterMap() {
-            Map<String, String> params = new HashMap<String, String>();
+        ParameterMap toParameterMap() {
+            ParameterMap params = new ParameterMap();
     
             if (start != null)
                 params.put("start", start.toString());
@@ -447,7 +480,7 @@ public class IndexTankClient implements ApiClient {
                             + ":"
                             + (range.ceil == Double.POSITIVE_INFINITY ? "*"
                                     : String.valueOf(range.ceil));
-                    String param = params.get(key);
+                    String param = params.getFirst(key);
                     if (param == null) {
                         params.put(key, value);
                     } else {
@@ -464,7 +497,7 @@ public class IndexTankClient implements ApiClient {
                             + ":"
                             + (range.ceil == Double.POSITIVE_INFINITY ? "*"
                                     : String.valueOf(range.ceil));
-                    String param = params.get(key);
+                    String param = params.getFirst(key);
                     if (param == null) {
                         params.put(key, value);
                     } else {
@@ -514,7 +547,7 @@ public class IndexTankClient implements ApiClient {
             "yyyy-MM-dd'T'HH:mm:ssz");
 
     private static Object callAPI(String method, String urlString,
-            Map<String, String> params, String privatePass) throws IOException,
+            ParameterMap params, String privatePass) throws IOException,
             HttpCodeException {
         return callAPI(method, urlString, params, (String) null, privatePass);
     }
@@ -525,21 +558,21 @@ public class IndexTankClient implements ApiClient {
     }
 
     private static Object callAPI(String method, String urlString,
-            Map<String, String> params, Map<String, Object> data,
+    		ParameterMap params, Map<String, Object> data,
             String privatePass) throws IOException, HttpCodeException {
         return callAPI(method, urlString, params, data == null ? null
                 : JSONObject.toJSONString(data), privatePass);
     }
 
     private static Object callAPI(String method, String urlString,
-            Map<String, String> params, List<Map<String, Object>> data,
+    		ParameterMap params, List<Map<String, Object>> data,
             String privatePass) throws IOException, HttpCodeException {
         return callAPI(method, urlString, params, data == null ? null
                 : JSONArray.toJSONString(data), privatePass);
     }
 
     private static Object callAPI(String method, String urlString,
-            Map<String, String> params, String data, String privatePass)
+    		ParameterMap params, String data, String privatePass)
             throws IOException, HttpCodeException {
 
         if (params != null && !params.isEmpty()) {
@@ -611,16 +644,18 @@ public class IndexTankClient implements ApiClient {
         }
     }
 
-    private static String paramsToQueryString(Map<String, String> params) {
+    private static String paramsToQueryString(ParameterMap params) {
         StringBuilder sb = new StringBuilder();
-        for (Entry<String, String> entry : params.entrySet()) {
-            try {
-                sb.append(URLEncoder.encode(entry.getKey(), "UTF-8"));
-                sb.append("=");
-                sb.append(URLEncoder.encode(entry.getValue(), "UTF-8"));
-                sb.append("&");
-            } catch (UnsupportedEncodingException e) {
-            }
+        for (String key : params.keyset()) {
+        	for (String value : params.get(key)){
+                try {
+                    sb.append(URLEncoder.encode(key, "UTF-8"));
+                    sb.append("=");
+                    sb.append(URLEncoder.encode(value, "UTF-8"));
+                    sb.append("&");
+                } catch (UnsupportedEncodingException e) {
+                }
+        	}
         }
 
         return sb.toString();
@@ -654,8 +689,8 @@ public class IndexTankClient implements ApiClient {
         @Override
         public SearchResults search(Query query) throws IOException,
                 InvalidSyntaxException {
-            Map<String, String> params = query.toParameterMap();
-
+            ParameterMap params = query.toParameterMap();
+            
             try {
                 return new SearchResults((Map<String, Object>) callAPI(
                         GET_METHOD, indexUrl + SEARCH_URL, params, privatePass));
@@ -805,11 +840,58 @@ public class IndexTankClient implements ApiClient {
                 IndexDoesNotExistException {
             if (null == documentId)
                 throw new IllegalArgumentException("documentId can not be null");
-            Map<String, String> params = new HashMap<String, String>();
+            ParameterMap params = new ParameterMap();
             params.put("docid", documentId);
 
             try {
                 callAPI(DELETE_METHOD, indexUrl + DOCS_URL, params, privatePass);
+            } catch (HttpCodeException e) {
+                if (e.getHttpCode() == 404) {
+                    throw new IndexDoesNotExistException(e);
+                } else {
+                    throw new UnexpectedCodeException(e);
+                }
+            }
+        }
+
+        @Override
+        public BulkDeleteResults deleteDocuments(Iterable<String> documentIds)
+        		throws IOException, IndexDoesNotExistException {
+            if (null == documentIds)
+                throw new IllegalArgumentException("documentIds can not be null");
+            
+            ParameterMap params = new ParameterMap();
+            params.addAll("docid", documentIds);
+            
+            try {
+            	List<Map<String, Object>> results = (List<Map<String, Object>>) 
+            		callAPI(DELETE_METHOD, indexUrl + DOCS_URL, params, privatePass);
+            	
+                List<Boolean> deleted = new ArrayList<Boolean>(results.size());
+                List<String> errors = new ArrayList<String>(results.size());
+                boolean hasErrors = false;
+
+                for (int i = 0; i < results.size(); i++) {
+                    Map<String, Object> result = results.get(i);
+                    Boolean wasDeleted = (Boolean) result.get("deleted");
+
+                    deleted.add(i, wasDeleted);
+
+                    if (!wasDeleted) {
+                        hasErrors = true;
+                        errors.add(i, (String) result.get("error"));
+                    }
+                }
+
+                ArrayList<String> docidList = new ArrayList<String>();
+
+                for (String docid : documentIds) {
+                	docidList.add(docid);
+                }
+
+                return new BulkDeleteResults(deleted, errors, docidList,
+                        hasErrors);
+            
             } catch (HttpCodeException e) {
                 if (e.getHttpCode() == 404) {
                     throw new IndexDoesNotExistException(e);
@@ -1086,5 +1168,61 @@ public class IndexTankClient implements ApiClient {
     private String getIndexesUrl() {
         String indexesUrl = apiUrl + "v1/indexes/";
         return indexesUrl;
+    }
+    
+    private static class ParameterMap {
+    	private Map<String, List<String>> innerMap;
+    	
+    	ParameterMap() {
+    		this.innerMap = new HashMap<String, List<String>>();
+        }
+
+    	public Set<String> keyset() {
+	        return this.innerMap.keySet();
+        }
+
+		public void addAll(String key, Iterable<String> newvalues) {
+    		List<String> values = this.innerMap.get(key);
+    		if (values == null) {
+    			values = new ArrayList<String>();
+    			this.innerMap.put(key, values);
+    		}
+
+    		for (String newvalue : newvalues) {
+				values.add(newvalue);
+            }
+        }
+
+		public boolean isEmpty() {
+	        return this.innerMap.isEmpty();
+        }
+
+    	void add(String key, String value){
+    		List<String> values = this.innerMap.get(key);
+    		if (values != null) {
+    			values.add(value);
+    		} else {
+    			this.put(key, value);
+    		}
+    	}
+
+    	void put(String key, String value){
+    		List<String> values = new ArrayList<String>();
+    		values.add(value);
+    		this.innerMap.put(key, values);
+    	}
+
+    	String getFirst(String key){
+    		List<String> values = this.innerMap.get(key);
+    		if (values != null && values.size() > 0)
+    			return values.get(0);
+    		else 
+    			return null;
+    	}
+
+    	List<String> get(String key){
+    		return this.innerMap.get(key);
+    	}
+
     }
 }
