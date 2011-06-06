@@ -52,13 +52,13 @@ public class IndexTankClient implements ApiClient {
     }
 
     
-    static abstract class BatchResults<T> {
+    static abstract class AbstractBatchResults<T> {
         private boolean hasErrors;
         private List<Boolean> results;
         private List<String> errors;
         private List<T> elements;
 
-        public BatchResults(List<Boolean> results, List<String> errors, 
+        public AbstractBatchResults(List<Boolean> results, List<String> errors, 
         		List<T> elements, boolean hasErrors) {
             this.results = results;
             this.errors = errors;
@@ -163,9 +163,9 @@ public class IndexTankClient implements ApiClient {
      * @author flaptor
      * 
      */
-    public static class BatchInsertResults extends BatchResults<Document> {
+    public static class BatchResults extends AbstractBatchResults<Document> {
 
-        public BatchInsertResults(List<Boolean> results, List<String> errors,
+        public BatchResults(List<Boolean> results, List<String> errors,
                 List<Document> documents, boolean hasErrors) {
         	super(results, errors, documents, hasErrors);
         }
@@ -185,7 +185,7 @@ public class IndexTankClient implements ApiClient {
      * @author flaptor
      * 
      */
-    public static class BulkDeleteResults extends BatchResults<String> {
+    public static class BulkDeleteResults extends AbstractBatchResults<String> {
 
         public BulkDeleteResults(List<Boolean> results, List<String> errors,
                 List<String> docids, boolean hasErrors) {
@@ -733,7 +733,7 @@ public class IndexTankClient implements ApiClient {
         }
 
         @Override
-        public BatchInsertResults addDocuments(Iterable<Document> documents)
+        public BatchResults addDocuments(Iterable<Document> documents)
                 throws IOException, IndexDoesNotExistException {
             List<Map<String, Object>> data = new ArrayList<Map<String, Object>>();
 
@@ -769,7 +769,7 @@ public class IndexTankClient implements ApiClient {
                     documentsList.add(document);
                 }
 
-                return new BatchInsertResults(addeds, errors, documentsList,
+                return new BatchResults(addeds, errors, documentsList,
                         hasErrors);
 
             } catch (HttpCodeException e) {

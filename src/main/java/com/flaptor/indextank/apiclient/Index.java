@@ -42,7 +42,7 @@ public interface Index {
      *             error and it SHOULD BE HANDLED if a retry policy is
      *             implemented.
      */
-    IndexTankClient.BatchInsertResults addDocuments(
+    IndexTankClient.BatchResults addDocuments(
             Iterable<IndexTankClient.Document> documents) throws IOException,
             IndexDoesNotExistException;
 
