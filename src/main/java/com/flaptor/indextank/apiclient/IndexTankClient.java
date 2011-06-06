@@ -372,7 +372,7 @@ public class IndexTankClient implements ApiClient {
     
         public Query withFetchFields(List<String> fetchFields) {
             if (fetchFields == null) {
-            	throw new NullPointerException("fetchFields must be non-null");
+                throw new NullPointerException("fetchFields must be non-null");
             }
     
             if (this.fetchFields == null) {
@@ -456,7 +456,7 @@ public class IndexTankClient implements ApiClient {
         }
     
         ParameterMap toParameterMap() {
-        	ParameterMap params = new ParameterMap();
+            ParameterMap params = new ParameterMap();
     
             if (start != null)
                 params.put("start", start.toString());
