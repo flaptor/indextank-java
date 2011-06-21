@@ -16,14 +16,35 @@ public interface Index {
     /**
      * Creates this index.
      * 
+     * @param publicSearch
+     *             enable public search for this index 
+     * @throws IndexAlreadyExistsException
+     *             If it already existed
+     * @throws MaximumIndexesExceededException
+     *             If the account has reached the limit
+     */
+    void create(boolean publicSearch) throws IOException, IndexAlreadyExistsException,
+            MaximumIndexesExceededException;
+    
+    /**
+     * Creates this index.
+     * 
+     * this method is equivalent to {@link Index#create(false)} 
+     * 
      * @throws IndexAlreadyExistsException
      *             If it already existed
      * @throws MaximumIndexesExceededException
      *             If the account has reached the limit
      */
     void create() throws IOException, IndexAlreadyExistsException,
-            MaximumIndexesExceededException;
+        MaximumIndexesExceededException;
 
+    /**
+     * Delete this index
+     * 
+     * @throws IndexDoesNotExistException*
+     *             If this index does not exists
+     */
     void delete() throws IOException, IndexDoesNotExistException;
 
     /**
