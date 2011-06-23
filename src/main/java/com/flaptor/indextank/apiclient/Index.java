@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.Map;
 
+import com.flaptor.indextank.apiclient.IndexTankClient.IndexConfiguration;
+
 
 public interface Index {
 
@@ -23,9 +25,9 @@ public interface Index {
      * @throws MaximumIndexesExceededException
      *             If the account has reached the limit
      */
-    void create(Boolean publicSearch) throws IOException, IndexAlreadyExistsException,
-            MaximumIndexesExceededException;
-    
+    void create(IndexConfiguration conf) throws IOException, IndexAlreadyExistsException,
+    MaximumIndexesExceededException;
+
     /**
      * Creates this index.
      * 
@@ -38,6 +40,15 @@ public interface Index {
      */
     void create() throws IOException, IndexAlreadyExistsException,
         MaximumIndexesExceededException;
+
+    
+    /**
+     * Update this index.
+     * 
+     * @throws IndexDoesNotExistException*
+     *          if the index does not exist
+     */
+    void update(IndexConfiguration conf) throws IOException, IndexDoesNotExistException;
 
     /**
      * Delete this index

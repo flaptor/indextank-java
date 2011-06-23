@@ -532,6 +532,21 @@ public class IndexTankClient implements ApiClient {
     
     }    
 
+    public static class IndexConfiguration {
+        protected Boolean publicSearch;
+
+        public IndexConfiguration enablePublicSearch(Boolean publicSearchEnabled) {
+            this.publicSearch = publicSearchEnabled;
+            return this;
+        }
+        
+        protected Map<String, Object> toConfigurationMap() {
+            HashMap<String, Object> conf = new HashMap<String, Object>();
+            if (this.publicSearch != null) conf.put("public_search", this.publicSearch);
+            return conf;
+        }
+    }
+    
     private static final String GET_METHOD = "GET";
     private static final String PUT_METHOD = "PUT";
     private static final String DELETE_METHOD = "DELETE";
@@ -710,12 +725,16 @@ public class IndexTankClient implements ApiClient {
         }
 
         @Override
-        public void create(Boolean publicSearch) throws IOException, IndexAlreadyExistsException,
+        public void create(IndexConfiguration conf) throws IOException, IndexAlreadyExistsException,
                 MaximumIndexesExceededException {
-            Map<String, Object> data = new HashMap<String, Object>();
-            if (publicSearch != null) {
-                data.put("public_search", publicSearch);
-            }
+
+            if (this.exists())
+                throw new IndexAlreadyExistsException("Index already exists");
+            
+            Map<String, Object> data = null;
+            if (conf != null)
+                data = conf.toConfigurationMap();
+            
             try {
                 callAPI(PUT_METHOD, indexUrl, null, data, privatePass);
             } catch (HttpCodeException e) {
@@ -729,6 +748,33 @@ public class IndexTankClient implements ApiClient {
             }
         }
 
+        @Override
+        public void update(IndexConfiguration conf) throws IndexDoesNotExistException, IOException {
+
+            if (conf == null)
+                throw new IllegalArgumentException("Index configuration must not be null");
+
+            Map<String, Object> data = conf.toConfigurationMap();
+            
+            if (data.size() == 0)
+                throw new IllegalArgumentException("Index configuration is empty.");
+            
+            if (!this.exists())
+                throw new IndexDoesNotExistException("Index does not exist");
+            
+            try {
+                callAPI(PUT_METHOD, indexUrl, null, data, privatePass);
+            } catch (HttpCodeException e) {
+                if (e.getHttpCode() == 204) {
+                    this.refreshMetadata();
+                    return;
+                } else {
+                    throw new UnexpectedCodeException(e);
+                }
+            }
+        }
+
+        
         @Override
         public void delete() throws IOException, IndexDoesNotExistException {
             try {
@@ -1141,10 +1187,10 @@ public class IndexTankClient implements ApiClient {
     }
     
     @Override
-    public Index createIndex(String indexName, Boolean publicSearch) throws IOException,
+    public Index createIndex(String indexName, IndexConfiguration conf) throws IOException,
             IndexAlreadyExistsException, MaximumIndexesExceededException {
         Index index = getIndex(indexName);
-        index.create(publicSearch);
+        index.create(conf);
         return index;
     }
 

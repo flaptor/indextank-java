@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 
 import com.flaptor.indextank.apiclient.IndexTankClient.Index;
+import com.flaptor.indextank.apiclient.IndexTankClient.IndexConfiguration;
 
 
 public interface ApiClient {
@@ -13,7 +14,7 @@ public interface ApiClient {
     Index createIndex(String indexName) throws IOException, IndexAlreadyExistsException,
             MaximumIndexesExceededException;
 
-    Index createIndex(String indexName, Boolean publicSearch) throws IOException,
+    Index createIndex(String indexName, IndexConfiguration conf) throws IOException,
             IndexAlreadyExistsException, MaximumIndexesExceededException;
 
     void deleteIndex(String indexName) throws IOException,

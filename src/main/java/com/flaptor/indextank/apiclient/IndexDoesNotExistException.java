@@ -4,7 +4,12 @@ import com.flaptor.indextank.apiclient.IndexTankClient.HttpCodeException;
 
 
 public class IndexDoesNotExistException extends Exception {
+    
     public IndexDoesNotExistException(HttpCodeException source) {
         super(source.getMessage());
+    }
+
+    public IndexDoesNotExistException(String message) {
+        super(message);
     }
 }
