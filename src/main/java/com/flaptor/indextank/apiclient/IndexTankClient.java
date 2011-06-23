@@ -706,14 +706,16 @@ public class IndexTankClient implements ApiClient {
         @Override
         public void create() throws IOException, IndexAlreadyExistsException,
                 MaximumIndexesExceededException {
-            this.create(false);
+            this.create(null);
         }
 
         @Override
-        public void create(boolean publicSearch) throws IOException, IndexAlreadyExistsException,
+        public void create(Boolean publicSearch) throws IOException, IndexAlreadyExistsException,
                 MaximumIndexesExceededException {
             Map<String, Object> data = new HashMap<String, Object>();
-            data.put("public_search", publicSearch);
+            if (publicSearch != null) {
+                data.put("public_search", publicSearch);
+            }
             try {
                 callAPI(PUT_METHOD, indexUrl, null, data, privatePass);
             } catch (HttpCodeException e) {
@@ -1135,11 +1137,11 @@ public class IndexTankClient implements ApiClient {
     @Override
     public Index createIndex(String indexName) throws IOException,
             IndexAlreadyExistsException, MaximumIndexesExceededException {
-        return this.createIndex(indexName, false);
+        return this.createIndex(indexName, null);
     }
     
     @Override
-    public Index createIndex(String indexName, boolean publicSearch) throws IOException,
+    public Index createIndex(String indexName, Boolean publicSearch) throws IOException,
             IndexAlreadyExistsException, MaximumIndexesExceededException {
         Index index = getIndex(indexName);
         index.create(publicSearch);

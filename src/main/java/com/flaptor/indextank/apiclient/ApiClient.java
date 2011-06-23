@@ -13,7 +13,7 @@ public interface ApiClient {
     Index createIndex(String indexName) throws IOException, IndexAlreadyExistsException,
             MaximumIndexesExceededException;
 
-    Index createIndex(String indexName, boolean publicSearch) throws IOException,
+    Index createIndex(String indexName, Boolean publicSearch) throws IOException,
             IndexAlreadyExistsException, MaximumIndexesExceededException;
 
     void deleteIndex(String indexName) throws IOException,

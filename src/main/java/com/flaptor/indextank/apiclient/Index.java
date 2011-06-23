@@ -17,13 +17,13 @@ public interface Index {
      * Creates this index.
      * 
      * @param publicSearch
-     *             enable public search for this index 
+     *             enable public search for this index. if null, public search will be disabled. 
      * @throws IndexAlreadyExistsException
      *             If it already existed
      * @throws MaximumIndexesExceededException
      *             If the account has reached the limit
      */
-    void create(boolean publicSearch) throws IOException, IndexAlreadyExistsException,
+    void create(Boolean publicSearch) throws IOException, IndexAlreadyExistsException,
             MaximumIndexesExceededException;
     
     /**
