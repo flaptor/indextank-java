@@ -216,10 +216,13 @@ public interface Index {
     String getCode() throws IOException, IndexDoesNotExistException;
 
     Date getCreationTime() throws IOException, IndexDoesNotExistException;
+    
+    boolean isPublicSearchEnabled() throws IOException, IndexDoesNotExistException;
 
     void refreshMetadata() throws IOException, IndexDoesNotExistException;
 
     Map<String, Object> getMetadata() throws IOException,
             IndexDoesNotExistException;
+
 
 }

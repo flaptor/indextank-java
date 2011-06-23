@@ -1065,6 +1065,11 @@ public class IndexTankClient implements ApiClient {
         }
 
         @Override
+        public boolean isPublicSearchEnabled() throws IOException, IndexDoesNotExistException {
+            return (Boolean)getMetadata().get("public_search");
+        }
+
+        @Override
         public void refreshMetadata() throws IOException,
                 IndexDoesNotExistException {
             try {
