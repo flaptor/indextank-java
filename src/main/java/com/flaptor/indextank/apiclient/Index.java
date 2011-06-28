@@ -12,6 +12,12 @@ public interface Index {
 
     IndexTankClient.SearchResults search(IndexTankClient.Query query) throws IOException,
             InvalidSyntaxException;
+    
+    void deleteBySearch(String query) throws IOException,
+            IndexDoesNotExistException, InvalidSyntaxException;
+    
+    void deleteBySearch(IndexTankClient.Query query) throws IOException,
+            IndexDoesNotExistException, InvalidSyntaxException;
 
     /**
      * Creates this index.
