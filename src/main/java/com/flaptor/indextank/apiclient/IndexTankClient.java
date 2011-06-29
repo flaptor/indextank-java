@@ -1113,11 +1113,15 @@ public class IndexTankClient implements ApiClient {
         }
 
         @Override
-        public boolean hasStarted() throws IOException,
-                IndexDoesNotExistException {
+        public boolean hasStarted() throws IOException, IndexDoesNotExistException {
             refreshMetadata();
 
             return (Boolean) getMetadata().get("started");
+        }
+
+        @Override
+        public String getStatus() throws IOException, IndexDoesNotExistException {
+            return (String) getMetadata().get("status");
         }
 
         @Override

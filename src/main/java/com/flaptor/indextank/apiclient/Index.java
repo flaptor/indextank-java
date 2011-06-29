@@ -229,6 +229,8 @@ public interface Index {
      * @throws IOException
      */
     boolean hasStarted() throws IOException, IndexDoesNotExistException;
+    
+    String getStatus() throws IOException, IndexDoesNotExistException;
 
     String getCode() throws IOException, IndexDoesNotExistException;
 
