@@ -719,6 +719,30 @@ public class IndexTankClient implements ApiClient {
         }
         
         @Override
+        public void deleteBySearch(String query) throws IOException,
+                IndexDoesNotExistException, InvalidSyntaxException {
+            deleteBySearch(Query.forString(query));
+        }
+        
+        @Override
+        public void deleteBySearch(Query query) throws IOException,
+                IndexDoesNotExistException, InvalidSyntaxException {
+            ParameterMap params = query.toParameterMap();
+            
+            try {
+                callAPI(DELETE_METHOD, indexUrl + SEARCH_URL, params, privatePass);
+            } catch (HttpCodeException e) {
+                if (e.getHttpCode() == 400) {
+                    throw new InvalidSyntaxException(e);
+                } else if (e.getHttpCode() == 404) {
+                    throw new IndexDoesNotExistException(e);
+                } else {
+                    throw new UnexpectedCodeException(e);
+                }
+            }
+        }
+        
+        @Override
         public void create() throws IOException, IndexAlreadyExistsException,
                 MaximumIndexesExceededException {
             this.create(null);
