@@ -36,6 +36,7 @@
        <manifest>
          <attribute name="Built-By" value="${user.name}"/>
          <attribute name="Version" value="${version}"/>
+         <attribute name="Main-Class" value="com.flaptor.indextank.apiclient.IndexTankMain"/>
        </manifest>
 
        <fileset dir="${build.dir}" excludes="**/*Test.class">
@@ -64,6 +65,7 @@
             <manifest>
                 <attribute name="Built-By" value="${user.name}"/>
                 <attribute name="Version" value="${version}"/>
+            	<attribute name="Main-Class" value="com.flaptor.indextank.apiclient.IndexTankMain"/>
             </manifest>
 
             <fileset dir="${build.dir}" excludes="**/*Test.class">
