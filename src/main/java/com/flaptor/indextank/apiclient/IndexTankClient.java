@@ -273,12 +273,15 @@ public class IndexTankClient implements ApiClient {
         public final float searchTime;
         public final List<Map<String, Object>> results;
         public final Map<String, Map<String, Integer>> facets;
+        public final String didYouMean;
 
         public SearchResults(Map<String, Object> response) {
             matches = (Long) response.get("matches");
             searchTime = Float.valueOf((String) response.get("search_time"));
             results = (List<Map<String, Object>>) response.get("results");
             facets = (Map<String, Map<String, Integer>>) response.get("facets");
+            Object didYouMean = response.get("didyoumean");
+            this.didYouMean = (didYouMean != null)? didYouMean.toString() : null;
         }
 
         @Override
