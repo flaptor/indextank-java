@@ -328,6 +328,8 @@ public class IndexTankClient implements ApiClient {
         protected List<Range> documentVariableFilters;
         protected Map<Integer, Float> queryVariables;
         protected String queryString;
+        protected String fetchCategories;
+        protected String fetchVariables;
     
         public static Query forString(String query) {
             return new Query(query);
@@ -369,7 +371,17 @@ public class IndexTankClient implements ApiClient {
         public Query withSnippetFields(String... snippetFields) {
             return withSnippetFields(Arrays.asList(snippetFields));
         }
-    
+
+        public Query withFetchCategories() {
+            this.fetchCategories = "*";
+            return this;
+        }
+
+        public Query withFetchVariables() {
+            this.fetchVariables = "*";
+            return this;
+        }
+
         public Query withFetchFields(List<String> fetchFields) {
             if (fetchFields == null) {
                 throw new NullPointerException("fetchFields must be non-null");
@@ -468,6 +480,10 @@ public class IndexTankClient implements ApiClient {
                 params.put("snippet", join(snippetFields, ","));
             if (fetchFields != null)
                 params.put("fetch", join(fetchFields, ","));
+            if (fetchCategories != null)
+                params.put("fetch_categories", fetchCategories);
+            if (fetchVariables != null)
+                params.put("fetch_variables", fetchVariables);
             if (categoryFilters != null)
                 params.put("category_filters",
                         JSONObject.toJSONString(categoryFilters));
