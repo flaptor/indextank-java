@@ -11,7 +11,7 @@
   <artifactId>indextank-java</artifactId>
   <packaging>jar</packaging>
   <name>Indextank Java Client</name>
-  <version>1.0.9</version>
+  <version>1.0.10-SNAPSHOT</version>
   <description>Java client for Indextank search engine</description>
   <url>http://www.indextank.com</url>
 
