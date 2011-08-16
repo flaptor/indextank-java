@@ -232,6 +232,8 @@ public interface Index {
     
     String getStatus() throws IOException, IndexDoesNotExistException;
 
+    String getName();
+    
     String getCode() throws IOException, IndexDoesNotExistException;
 
     Date getCreationTime() throws IOException, IndexDoesNotExistException;
