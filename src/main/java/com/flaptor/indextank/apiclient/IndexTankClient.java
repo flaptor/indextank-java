@@ -621,8 +621,10 @@ public class IndexTankClient implements ApiClient {
         // http://code.google.com/p/googleappengine/issues/detail?id=1454
         urlConnection.setInstanceFollowRedirects(false);
         urlConnection.setDoOutput(true);
-        urlConnection.setRequestProperty("Authorization",
-                "Basic " + Base64.encodeBytes(privatePass.getBytes()));
+        if (privatePass != null && !privatePass.isEmpty()) {
+            urlConnection.setRequestProperty("Authorization",
+                    "Basic " + Base64.encodeBytes(privatePass.getBytes()));
+        }
         urlConnection.setRequestMethod(method);
 
         if (method.equals(PUT_METHOD) && data != null) {
@@ -1338,5 +1340,15 @@ public class IndexTankClient implements ApiClient {
     		return this.innerMap.get(key);
     	}
 
+    }
+    
+    public static void main(String[] args) throws IOException, InvalidSyntaxException {
+        IndexTankClient client = new IndexTankClient("http://localhost:20220");
+        
+        Index index = client.getIndex("idx");
+        
+        Query query = new Query("the");
+        
+        System.out.println(index.search(query));
     }
 }
