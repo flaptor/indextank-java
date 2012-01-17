@@ -857,10 +857,11 @@ public class IndexTankClient implements ApiClient {
                     Boolean added = (Boolean) result.get("added");
 
                     addeds.add(i, added);
+                    errors.add(i, null);    // populate every index position to avoid IndexOutOfBoundsException below
 
                     if (!added) {
                         hasErrors = true;
-                        errors.add(i, (String) result.get("error"));
+                        errors.set(i, (String) result.get("error"));
                     }
                 }
 
