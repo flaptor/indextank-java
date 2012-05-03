@@ -706,12 +706,15 @@ public class IndexTankClient implements ApiClient {
     public class Index implements com.flaptor.indextank.apiclient.Index {
         private final String indexUrl;
         private Map<String, Object> metadata;
+        private final String name;
 
-        private Index(String indexUrl) {
+        private Index(String name, String indexUrl) {
+            this.name = name;
             this.indexUrl = indexUrl;
         }
 
-        private Index(String indexUrl, Map<String, Object> metadata) {
+        private Index(String name, String indexUrl, Map<String, Object> metadata) {
+            this.name = name;
             this.indexUrl = indexUrl;
             this.metadata = metadata;
         }
@@ -1152,6 +1155,11 @@ public class IndexTankClient implements ApiClient {
         }
 
         @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
         public Date getCreationTime() throws IOException,
                 IndexDoesNotExistException {
             try {
@@ -1227,7 +1235,7 @@ public class IndexTankClient implements ApiClient {
 
     @Override
     public Index getIndex(String indexName) {
-        return new Index(getIndexUrl(indexName));
+        return new Index(indexName, getIndexUrl(indexName));
     }
 
     @Override
@@ -1258,7 +1266,7 @@ public class IndexTankClient implements ApiClient {
                     GET_METHOD, getIndexesUrl(), privatePass);
 
             for (Entry<String, Object> entry : responseMap.entrySet()) {
-                result.add(new Index(getIndexUrl(entry.getKey()),
+                result.add(new Index(entry.getKey(), getIndexUrl(entry.getKey()),
                         (Map<String, Object>) entry.getValue()));
             }
 
